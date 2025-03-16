@@ -3,151 +3,250 @@
   "title": "Extended Ubytec Schema",
   "type": "object",
   "properties": {
-    "RootSentence": { "$ref": "#/definitions/SyntaxSentence" },
-    "Metadata":     { "$ref": "#/definitions/RootMetadata" }
+    "RootSentence": {
+      "$ref": "#/definitions/SyntaxSentence"
+    },
+    "Metadata": {
+      "$ref": "#/definitions/RootMetadata"
+    }
   },
-  "required": ["RootSentence","Metadata"],
-
+  "required": [
+    "RootSentence",
+    "Metadata"
+  ],
   "definitions": {
     "RootMetadata": {
       "type": "object",
       "properties": {
-        "guid":     { "type": "string" },
-        "encoding": { "type": "string" },
-        "langver":  { "type": "string" }
+        "guid": {
+          "type": "string"
+        },
+        "encoding": {
+          "type": "string"
+        },
+        "langver": {
+          "type": "string"
+        }
       },
-      "required": ["guid","encoding","langver"]
+      "required": [
+        "guid",
+        "encoding",
+        "langver"
+      ]
     },
-
     "SyntaxSentence": {
       "type": "object",
       "properties": {
         "Nodes": {
           "type": "array",
-          "items": { "$ref": "#/definitions/SyntaxNode" }
+          "items": {
+            "$ref": "#/definitions/SyntaxNode"
+          }
         },
         "Sentences": {
           "type": "array",
-          "items": { "$ref": "#/definitions/SyntaxSentence" }
+          "items": {
+            "$ref": "#/definitions/SyntaxSentence"
+          }
         },
-        "Metadata": { "$ref": "#/definitions/SentenceMetadata" }
+        "Metadata": {
+          "$ref": "#/definitions/SentenceMetadata"
+        }
       },
-      "required": ["Nodes","Sentences","Metadata"]
+      "required": [
+        "Nodes",
+        "Sentences",
+        "Metadata"
+      ]
     },
-
     "SentenceMetadata": {
       "type": "object",
       "properties": {
-        "guid": { "type": "string" },
-        "type": { "type": "string" }
+        "guid": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
       },
-      "required": ["guid","type"]
+      "required": [
+        "guid",
+        "type"
+      ]
     },
-
     "SyntaxNode": {
       "type": "object",
       "properties": {
-        "Operation": { "$ref": "#/definitions/Operation" },
+        "Operation": {
+          "$ref": "#/definitions/Operation"
+        },
         "Children": {
-          "type": ["array","null"],
-          "items": { "$ref": "#/definitions/SyntaxNode" }
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/SyntaxNode"
+          }
         },
         "Tokens": {
-          "type": ["array","null"],
-          "items": { "$ref": "#/definitions/SyntaxToken" }
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/SyntaxToken"
+          }
         },
-        "Metadata": { "$ref": "#/definitions/NodeMetadata" }
+        "Metadata": {
+          "$ref": "#/definitions/NodeMetadata"
+        }
       },
-      "required": ["Operation"]
+      "required": [
+        "Operation"
+      ]
     },
-
     "NodeMetadata": {
       "type": "object",
       "properties": {
-        "guid": { "type": "string" },
-        "nasm": { "type": "string" }
+        "guid": {
+          "type": "string"
+        },
+        "nasm": {
+          "type": "string"
+        }
       },
-      "required": ["guid"]
+      "required": [
+        "guid"
+      ]
     },
-
     "SyntaxToken": {
       "type": "object",
       "properties": {
-        "Source": { "type": "string" },
-        "Line":   { "type": "string" },
-        "Row":    { "type": "integer" },
-        "Column": { "type": "integer" }
+        "Source": {
+          "type": "string"
+        },
+        "Line": {
+          "type": "string"
+        },
+        "Row": {
+          "type": "integer"
+        },
+        "Column": {
+          "type": "integer"
+        }
       },
-      "required": ["Source","Line","Row","Column"]
+      "required": [
+        "Source",
+        "Line",
+        "Row",
+        "Column"
+      ]
     },
-
     "Operation": {
       "type": "object",
       "properties": {
-        "$type": { "type": "string" },
+        "$type": {
+          "type": "string"
+        },
         "OpCode": {
-          "oneOf": [
-            {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 255
-            },
-            {
-              "type": "object",
-              "properties": {
-                "ExtensionGroup": {
+        "oneOf": [
+          {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 254
+          },
+          {
+            "type": "object",
+            "properties": {
+              "OpCode": {
+                "const": 255
+              },
+              "ExtensionGroup": {
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 255
                 },
-                "ExtendedOpCode": {
-                  "type": "integer",
-                  "minimum": 0,
-                  "maximum": 255
-                }
-              },
-              "required": ["ExtensionGroup","ExtendedOpCode"]
-            }
-          ]
+              "ExtendedOpCode": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 255
+              }
+            },
+            "required": [
+              "OpCode",
+              "ExtensionGroup",
+              "ExtendedOpCode"
+            ]
+          }
+        ]
         },
         "BlockType": {
-          "type": ["integer","null"]
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "Condition": {
           "$ref": "#/definitions/Condition"
         },
         "LabelIDxs": {
-          "type": ["array","null"],
-          "items": { "type": "integer" }
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer"
+          }
         },
         "Variables": {
-          "type": ["array","null"],
-          "items": { "$ref": "#/definitions/Variable" }
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/Variable"
+          }
         }
       },
-      "required": ["$type","OpCode"]
+      "required": [
+        "$type",
+        "OpCode"
+      ]
     },
-
     "Condition": {
       "type": "object",
       "properties": {
         "Left": {},
-        "Operand": { "type": "string" },
+        "Operand": {
+          "type": "string"
+        },
         "Right": {}
       },
-      "required": ["Left","Operand","Right"]
+      "required": [
+        "Left",
+        "Operand",
+        "Right"
+      ]
     },
-
     "Variable": {
       "type": "object",
       "properties": {
-        "BlockType":   { "type": "integer" },
-        "Nullable":    { "type": "boolean" },
-        "Name":        { "type": "string" },
-        "Value":       {},
+        "BlockType": {
+          "type": "integer"
+        },
+        "Nullable": {
+          "type": "boolean"
+        },
+        "Name": {
+          "type": "string"
+        },
+        "Value": {},
         "SyntaxTokens": {
           "type": "array",
-          "items": { "$ref": "#/definitions/SyntaxToken" }
+          "items": {
+            "$ref": "#/definitions/SyntaxToken"
+          }
         }
       },
       "required": [
