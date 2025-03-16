@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema#",
+  "title": "Extended Ubytec Schema",
+  "type": "object",
+  "properties": {
+    "RootSentence": { "$ref": "#/definitions/SyntaxSentence" },
+    "Metadata":     { "$ref": "#/definitions/RootMetadata" }
+  },
+  "required": ["RootSentence","Metadata"],
+
+  "definitions": {
+    "RootMetadata": {
+      "type": "object",
+      "properties": {
+        "guid":     { "type": "string" },
+        "encoding": { "type": "string" },
+        "langver":  { "type": "string" }
+      },
+      "required": ["guid","encoding","langver"]
+    },
+
+    "SyntaxSentence": {
+      "type": "object",
+      "properties": {
+        "Nodes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SyntaxNode" }
+        },
+        "Sentences": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SyntaxSentence" }
+        },
+        "Metadata": { "$ref": "#/definitions/SentenceMetadata" }
+      },
+      "required": ["Nodes","Sentences","Metadata"]
+    },
+
+    "SentenceMetadata": {
+      "type": "object",
+      "properties": {
+        "guid": { "type": "string" },
+        "type": { "type": "string" }
+      },
+      "required": ["guid","type"]
+    },
+
+    "SyntaxNode": {
+      "type": "object",
+      "properties": {
+        "Operation": { "$ref": "#/definitions/Operation" },
+        "Children": {
+          "type": ["array","null"],
+          "items": { "$ref": "#/definitions/SyntaxNode" }
+        },
+        "Tokens": {
+          "type": ["array","null"],
+          "items": { "$ref": "#/definitions/SyntaxToken" }
+        },
+        "Metadata": { "$ref": "#/definitions/NodeMetadata" }
+      },
+      "required": ["Operation"]
+    },
+
+    "NodeMetadata": {
+      "type": "object",
+      "properties": {
+        "guid": { "type": "string" },
+        "nasm": { "type": "string" }
+      },
+      "required": ["guid"]
+    },
+
+    "SyntaxToken": {
+      "type": "object",
+      "properties": {
+        "Source": { "type": "string" },
+        "Line":   { "type": "string" },
+        "Row":    { "type": "integer" },
+        "Column": { "type": "integer" }
+      },
+      "required": ["Source","Line","Row","Column"]
+    },
+
+    "Operation": {
+      "type": "object",
+      "properties": {
+        "$type": { "type": "string" },
+        "OpCode": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "object",
+              "properties": {
+                "ExtensionGroup": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                },
+                "ExtendedOpCode": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              },
+              "required": ["ExtensionGroup","ExtendedOpCode"]
+            }
+          ]
+        },
+        "BlockType": {
+          "type": ["integer","null"]
+        },
+        "Condition": {
+          "$ref": "#/definitions/Condition"
+        },
+        "LabelIDxs": {
+          "type": ["array","null"],
+          "items": { "type": "integer" }
+        },
+        "Variables": {
+          "type": ["array","null"],
+          "items": { "$ref": "#/definitions/Variable" }
+        }
+      },
+      "required": ["$type","OpCode"]
+    },
+
+    "Condition": {
+      "type": "object",
+      "properties": {
+        "Left": {},
+        "Operand": { "type": "string" },
+        "Right": {}
+      },
+      "required": ["Left","Operand","Right"]
+    },
+
+    "Variable": {
+      "type": "object",
+      "properties": {
+        "BlockType":   { "type": "integer" },
+        "Nullable":    { "type": "boolean" },
+        "Name":        { "type": "string" },
+        "Value":       {},
+        "SyntaxTokens": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SyntaxToken" }
+        }
+      },
+      "required": [
+        "BlockType",
+        "Nullable",
+        "Name",
+        "Value",
+        "SyntaxTokens"
+      ]
+    }
+  }
+}
