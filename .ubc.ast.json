@@ -127,20 +127,33 @@
           "type": "string"
         },
         "Line": {
-          "type": "string"
-        },
-        "Row": {
           "type": "integer"
         },
-        "Column": {
+        "StartColumn": {
           "type": "integer"
+        },
+        "EndColumn": {
+          "type": "integer"
+        },
+        "Scopes":
+        {
+          "type": [
+            "array"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "Metadata": {
+          "$ref": "#/definitions/NodeMetadata"
         }
       },
       "required": [
         "Source",
         "Line",
-        "Row",
-        "Column"
+        "StartColumn",
+        "EndColumn",
+        "Scopes"
       ]
     },
     "Operation": {
