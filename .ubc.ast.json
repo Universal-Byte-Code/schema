@@ -230,6 +230,17 @@
     "Condition": {
       "type": "object",
       "properties": {
+        "Tokens": {
+          "type": "array",
+          "items": {        
+            "$ref": "#/definitions/ConditionFragment"
+          }
+        }
+      },
+    },
+    "ConditionFragment": {
+      "type": "object",
+      "properties": {
         "Left": {},
         "Operand": {
           "type": "string"
@@ -255,7 +266,7 @@
           "type": "string"
         },
         "Value": {},
-        "SyntaxTokens": {
+        "Tokens": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/SyntaxToken"
