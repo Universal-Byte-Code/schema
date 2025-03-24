@@ -236,7 +236,7 @@
             "$ref": "#/definitions/ConditionFragment"
           }
         }
-      },
+      }
     },
     "ConditionFragment": {
       "type": "object",
