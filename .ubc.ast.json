@@ -238,6 +238,51 @@
         }
       }
     },
+    "BaseExpressionFragment": {
+      "type": "object",
+      "properties": {
+        "Tokens": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SyntaxToken" }
+        }
+      },
+      "required": ["Tokens"]
+    },
+    "ConditionExpressionFragment": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseExpressionFragment" },
+        {
+          "type": "object",
+          "properties": {
+            "$type": {
+              "const": "ConditionExpressionFragment"
+            },
+            "Left": {},
+            "Operand": { "type": "string" },
+            "Right": {}
+          },
+          "required": ["$type", "Left", "Operand", "Right"]
+        }
+      ]
+    },
+    "VariableExpressionFragment": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseExpressionFragment" },
+        {
+          "type": "object",
+          "properties": {
+            "$type": {
+              "const": "VariableExpressionFragment"
+            },
+            "BlockType": { "type": "integer" },
+            "Nullable": { "type": "boolean" },
+            "Name": { "type": "string" },
+            "Value": {}
+          },
+          "required": ["$type", "BlockType", "Nullable", "Name", "Value"]
+        }
+      ]
+    },
     "ExpressionFragment": {
       "oneOf": [
         { "$ref": "#/definitions/ConditionExpressionFragment" },
@@ -249,64 +294,7 @@
           "ConditionExpressionFragment": "#/definitions/ConditionExpressionFragment",
           "VariableExpressionFragment": "#/definitions/VariableExpressionFragment"
         }
-      },
-      "properties": {
-        "Tokens": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/SyntaxToken"
-          }
-        }
-      },
-      "required": [
-        "Tokens"
-      ]
-    },
-    "ConditionExpressionFragment": {
-      "allOf": [
-        { "$ref": "#/definitions/ExpressionFragment" },
-        {
-          "type": "object",
-          "properties": {
-            "Left": {},
-            "Operand": {
-              "type": "string"
-            },
-            "Right": {}
-          },
-          "required": [
-            "Left",
-            "Operand",
-            "Right"
-          ]
-        }
-      ]  
-    },
-    "VariableExpressionFragment": {
-      "allOf": [
-        { "$ref": "#/definitions/ExpressionFragment" },
-        {
-          "type": "object",
-          "properties": {
-            "BlockType": {
-              "type": "integer"
-            },
-            "Nullable": {
-              "type": "boolean"
-            },
-            "Name": {
-              "type": "string"
-            },
-            "Value": {}
-          },
-          "required": [
-            "BlockType",
-            "Nullable",
-            "Name",
-            "Value"
-          ]
-        }
-      ]
+      }
     }
   }
 }
