@@ -201,7 +201,7 @@
           ]
         },
         "Condition": {
-          "$ref": "#/definitions/Condition"
+          "$ref": "#/definitions/SyntaxExpression"
         },
         "LabelIDxs": {
           "type": [
@@ -218,7 +218,7 @@
             "null"
           ],
           "items": {
-            "$ref": "#/definitions/Variable"
+            "$ref": "#/definitions/VariableExpressionFragment"
           }
         }
       },
@@ -227,18 +227,42 @@
         "OpCode"
       ]
     },
-    "Condition": {
+    "SyntaxExpression": {
       "type": "object",
       "properties": {
-        "Tokens": {
+        "Syntaxes": {
           "type": "array",
           "items": {        
-            "$ref": "#/definitions/ConditionFragment"
+            "$ref": "#/definitions/ExpressionFragment"
           }
         }
       }
     },
-    "ConditionFragment": {
+    "ExpressionFragment": {
+      "oneOf": [
+        { "$ref": "#/definitions/ConditionExpressionFragment" },
+        { "$ref": "#/definitions/VariableExpressionFragment" },
+      ],
+      "discriminator": {
+        "propertyName": "$type",
+        "mapping": {
+          "ConditionExpressionFragment": "#/definitions/ConditionExpressionFragment",
+          "VariableExpressionFragment": "#/definitions/VariableExpressionFragment",
+        }
+      },
+      "properties": {
+        "Tokens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SyntaxToken"
+          }
+        }
+      }
+      "required": [
+        "Tokens"
+      ]
+    },
+    "ConditionExpressionFragment": {
       "type": "object",
       "properties": {
         "Left": {},
@@ -253,7 +277,7 @@
         "Right"
       ]
     },
-    "Variable": {
+    "VariableExpressionFragment": {
       "type": "object",
       "properties": {
         "BlockType": {
@@ -265,20 +289,13 @@
         "Name": {
           "type": "string"
         },
-        "Value": {},
-        "Tokens": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/SyntaxToken"
-          }
-        }
+        "Value": {}
       },
       "required": [
         "BlockType",
         "Nullable",
         "Name",
-        "Value",
-        "SyntaxTokens"
+        "Value"
       ]
     }
   }
