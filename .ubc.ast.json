@@ -263,39 +263,49 @@
       ]
     },
     "ConditionExpressionFragment": {
-      "type": "object",
-      "properties": {
-        "Left": {},
-        "Operand": {
-          "type": "string"
-        },
-        "Right": {}
-      },
-      "required": [
-        "Left",
-        "Operand",
-        "Right"
-      ]
+      "allOf": [
+        { "$ref": "#/definitions/ExpressionFragment" },
+        {
+          "type": "object",
+          "properties": {
+            "Left": {},
+            "Operand": {
+              "type": "string"
+            },
+            "Right": {}
+          },
+          "required": [
+            "Left",
+            "Operand",
+            "Right"
+          ]
+        }
+      ]  
     },
     "VariableExpressionFragment": {
-      "type": "object",
-      "properties": {
-        "BlockType": {
-          "type": "integer"
-        },
-        "Nullable": {
-          "type": "boolean"
-        },
-        "Name": {
-          "type": "string"
-        },
-        "Value": {}
-      },
-      "required": [
-        "BlockType",
-        "Nullable",
-        "Name",
-        "Value"
+      "allOf": [
+        { "$ref": "#/definitions/ExpressionFragment" },
+        {
+          "type": "object",
+          "properties": {
+            "BlockType": {
+              "type": "integer"
+            },
+            "Nullable": {
+              "type": "boolean"
+            },
+            "Name": {
+              "type": "string"
+            },
+            "Value": {}
+          },
+          "required": [
+            "BlockType",
+            "Nullable",
+            "Name",
+            "Value"
+          ]
+        }
       ]
     }
   }
