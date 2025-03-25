@@ -241,13 +241,13 @@
     "ExpressionFragment": {
       "oneOf": [
         { "$ref": "#/definitions/ConditionExpressionFragment" },
-        { "$ref": "#/definitions/VariableExpressionFragment" },
+        { "$ref": "#/definitions/VariableExpressionFragment" }
       ],
       "discriminator": {
         "propertyName": "$type",
         "mapping": {
           "ConditionExpressionFragment": "#/definitions/ConditionExpressionFragment",
-          "VariableExpressionFragment": "#/definitions/VariableExpressionFragment",
+          "VariableExpressionFragment": "#/definitions/VariableExpressionFragment"
         }
       },
       "properties": {
