@@ -257,7 +257,7 @@
             "$ref": "#/definitions/SyntaxToken"
           }
         }
-      }
+      },
       "required": [
         "Tokens"
       ]
