@@ -91,8 +91,7 @@
         },
         "Tokens": {
           "type": [
-            "array",
-            "null"
+            "array"
           ],
           "items": {
             "$ref": "#/definitions/SyntaxToken"
@@ -103,7 +102,9 @@
         }
       },
       "required": [
-        "Operation"
+        "Operation",
+        "Tokens",
+        "Metadata"
       ]
     },
     "NodeMetadata": {
@@ -135,8 +136,7 @@
         "EndColumn": {
           "type": "integer"
         },
-        "Scopes":
-        {
+        "Scopes": {
           "type": [
             "array"
           ],
@@ -153,7 +153,8 @@
         "Line",
         "StartColumn",
         "EndColumn",
-        "Scopes"
+        "Scopes",
+        "Metadata"
       ]
     },
     "Operation": {
@@ -163,36 +164,36 @@
           "type": "string"
         },
         "OpCode": {
-        "oneOf": [
-          {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 254
-          },
-          {
-            "type": "object",
-            "properties": {
-              "OpCode": {
-                "const": 255
-              },
-              "ExtensionGroup": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 254
+            },
+            {
+              "type": "object",
+              "properties": {
+                "OpCode": {
+                  "const": 255
+                },
+                "ExtensionGroup": {
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 255
                 },
-              "ExtendedOpCode": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 255
-              }
-            },
-            "required": [
-              "OpCode",
-              "ExtensionGroup",
-              "ExtendedOpCode"
-            ]
-          }
-        ]
+                "ExtendedOpCode": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 255
+                }
+              },
+              "required": [
+                "OpCode",
+                "ExtensionGroup",
+                "ExtendedOpCode"
+              ]
+            }
+          ]
         },
         "BlockType": {
           "type": [
@@ -226,25 +227,34 @@
       "properties": {
         "Syntaxes": {
           "type": "array",
-          "items": {        
+          "items": {
             "$ref": "#/definitions/ExpressionFragment"
           }
         }
-      }
+      },
+      "required": [
+        "Syntaxes"
+      ]
     },
     "BaseExpressionFragment": {
       "type": "object",
       "properties": {
         "Tokens": {
           "type": "array",
-          "items": { "$ref": "#/definitions/SyntaxToken" }
+          "items": {
+            "$ref": "#/definitions/SyntaxToken"
+          }
         }
       },
-      "required": ["Tokens"]
+      "required": [
+        "Tokens"
+      ]
     },
     "ConditionExpressionFragment": {
       "allOf": [
-        { "$ref": "#/definitions/BaseExpressionFragment" },
+        {
+          "$ref": "#/definitions/BaseExpressionFragment"
+        },
         {
           "type": "object",
           "properties": {
@@ -252,35 +262,60 @@
               "const": "ConditionExpressionFragment"
             },
             "Left": {},
-            "Operand": { "type": "string" },
+            "Operand": {
+              "type": "string"
+            },
             "Right": {}
           },
-          "required": ["$type", "Left", "Operand", "Right"]
+          "required": [
+            "$type",
+            "Left",
+            "Operand",
+            "Right"
+          ]
         }
       ]
     },
     "VariableExpressionFragment": {
       "allOf": [
-        { "$ref": "#/definitions/BaseExpressionFragment" },
+        {
+          "$ref": "#/definitions/BaseExpressionFragment"
+        },
         {
           "type": "object",
           "properties": {
             "$type": {
               "const": "VariableExpressionFragment"
             },
-            "PrimitiveType": { "type": "integer" },
-            "Nullable": { "type": "boolean" },
-            "Name": { "type": "string" },
+            "PrimitiveType": {
+              "type": "integer"
+            },
+            "Nullable": {
+              "type": "boolean"
+            },
+            "Name": {
+              "type": "string"
+            },
             "Value": {}
           },
-          "required": ["$type", "PrimitiveType", "Nullable", "Name", "Value"]
+          "required": [
+            "$type",
+            "PrimitiveType",
+            "Nullable",
+            "Name",
+            "Value"
+          ]
         }
       ]
     },
     "ExpressionFragment": {
       "oneOf": [
-        { "$ref": "#/definitions/ConditionExpressionFragment" },
-        { "$ref": "#/definitions/VariableExpressionFragment" }
+        {
+          "$ref": "#/definitions/ConditionExpressionFragment"
+        },
+        {
+          "$ref": "#/definitions/VariableExpressionFragment"
+        }
       ],
       "discriminator": {
         "propertyName": "$type",
