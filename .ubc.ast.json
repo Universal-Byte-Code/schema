@@ -213,13 +213,7 @@
           }
         },
         "Variables": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "$ref": "#/definitions/VariableExpressionFragment"
-          }
+          "$ref": "#/definitions/SyntaxExpression"
         }
       },
       "required": [
