@@ -274,12 +274,12 @@
             "$type": {
               "const": "VariableExpressionFragment"
             },
-            "BlockType": { "type": "integer" },
+            "PrimitiveType": { "type": "integer" },
             "Nullable": { "type": "boolean" },
             "Name": { "type": "string" },
             "Value": {}
           },
-          "required": ["$type", "BlockType", "Nullable", "Name", "Value"]
+          "required": ["$type", "PrimitiveType", "Nullable", "Name", "Value"]
         }
       ]
     },
