@@ -1,0 +1,81 @@
+name: Update AST with scopes from tmLanguage
+
+on:
+  workflow_dispatch:  # Launch script manually
+
+jobs:
+  update-ast:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Necesario para poder hacer push
+    steps:
+      - name: Check out this repo
+        uses: actions/checkout@v3
+
+      - name: Download .tmLanguage.json
+        run: |
+          curl -L -o ubytec.tmLanguage.json \
+            "https://raw.githubusercontent.com/Universal-Byte-Code/vscode-ubytec/refs/heads/master/syntaxes/ubytec.tmLanguage.json"
+
+      - name: Download .ubc.ast.json
+        run: |
+          curl -L -o .ubc.ast.json \
+            "https://raw.githubusercontent.com/Universal-Byte-Code/schema/refs/heads/main/.ubc.ast.json"
+
+      - name: Update AST JSON (extraer scopes y actualizar)
+        run: |
+          python <<EOF
+          import json
+
+          # 1) Parsear la gramática (.tmLanguage.json) y recolectar scopes
+          with open('ubytec.tmLanguage.json', 'r', encoding='utf-8') as f:
+              grammar = json.load(f)
+
+          scopes = set()
+
+          def visit_node(node):
+              if isinstance(node, dict):
+                  # Si 'name' existe y contiene '.ubytec', lo agregamos.
+                  # (Puedes ajustar este criterio a tu gusto: endswith, contains, etc.)
+                  if 'name' in node and '.ubytec' in node['name']:
+                      scopes.add(node['name'])
+                  for v in node.values():
+                      visit_node(v)
+              elif isinstance(node, list):
+                  for elem in node:
+                      visit_node(elem)
+              # si no es dict ni list, no hacemos nada
+
+          visit_node(grammar)
+          scopes = sorted(scopes)
+
+          # 2) Cargar el JSON Schema (.ubc.ast.json) y actualizar la sección de Scopes
+          with open('.ubc.ast.json', 'r', encoding='utf-8') as f:
+              schema = json.load(f)
+
+          # Asumiendo la ruta: definitions -> SyntaxToken -> properties -> Scopes -> items
+          # es donde definimos 'type': 'string' y ahora añadimos 'enum'
+          try:
+              scopes_items = schema["definitions"]["SyntaxToken"]["properties"]["Scopes"]["items"]
+          except KeyError:
+              raise KeyError("No se encuentra 'definitions/SyntaxToken/properties/Scopes/items' en el schema.")
+
+          scopes_items["enum"] = scopes
+
+          # 3) Guardar el schema modificado
+          with open('.ubc.ast.json', 'w', encoding='utf-8') as f:
+              json.dump(schema, f, indent=2, ensure_ascii=False)
+
+          # Por simple referencia, imprimimos qué scopes se han insertado
+          print("Scopes recopilados:")
+          for s in scopes:
+              print(" -", s)
+          EOF
+
+      - name: Commit changes
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "actions@github.com"
+          git add .ubc.ast.json
+          git commit -m "Update .ubc.ast.json with scopes from ubytec.tmLanguage.json"
+          git push
