@@ -39,6 +39,8 @@ jobs:
                   # (Puedes ajustar este criterio a tu gusto: endswith, contains, etc.)
                   if 'name' in node and '.ubytec' in node['name']:
                       scopes.add(node['name'])
+                  if 'scopeName' in node and '.ubytec' in node['scopeName']:
+                      scopes.add(node['scopeName'])
                   for v in node.values():
                       visit_node(v)
               elif isinstance(node, list):
