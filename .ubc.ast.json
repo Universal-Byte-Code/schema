@@ -300,7 +300,10 @@
           ]
         },
         "BlockType": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "Type": {
               "type": "integer",
