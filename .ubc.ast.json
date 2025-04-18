@@ -300,10 +300,31 @@
           ]
         },
         "BlockType": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": "object",
+          "properties": {
+            "Type": {
+              "type": "integer",
+              "description": "Numeric identifier of the base type (e.g., 0 = void, 1 = int32, etc.)"
+            },
+            "CustomID": {
+              "type": ["string", "null"],
+              "description": "Custom type identifier, used for user-defined types. Null if not applicable."
+            },
+            "Modifiers": {
+              "type": "integer",
+              "description": "Bit flags representing modifiers (e.g., public, static, const)."
+            },
+            "IsNullable": {
+              "type": "boolean",
+              "description": "Indicates whether the type can be null."
+            },
+            "IsArray": {
+              "type": "boolean",
+              "description": "Indicates whether the type is an array."
+            }
+          },
+          "required": ["Type", "CustomID", "Modifiers", "IsNullable", "IsArray"],
+          "additionalProperties": false
         },
         "Condition": {
           "$ref": "#/definitions/SyntaxExpression"
