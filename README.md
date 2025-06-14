@@ -1,5 +1,7 @@
 # Extended Ubytec Schema
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/3f97e874350447509cc84b2ff7990b0b)](https://app.codacy.com/gh/Universal-Byte-Code/schema?utm_source=github.com&utm_medium=referral&utm_content=Universal-Byte-Code/schema&utm_campaign=Badge_Grade)
+
 This repository defines the **Extended Ubytec AST Schema**, providing a JSON Schema specification for representing ASTs (Abstract Syntax Trees) in the Ubytec language. It covers:
 
 - **Root Sentence** (`RootSentence`), as the top-level container of nodes and child sentences.
