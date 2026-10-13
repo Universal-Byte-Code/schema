@@ -6,6 +6,7 @@ This repository contains the canonical schema and allocation registries used by 
 
 - `.ubc.ast.json` — JSON Schema for the Ubytec AST.
 - `docs/opcode-encoding.md` — normative opcode namespace and recursive `0xFF` escape encoding.
+- `registry/opcode-id.schema.json` — schema for core and recursive extended opcode identities.
 - `registry/opcodes.json` — canonical opcode and extension-group allocation registry.
 - `registry/capabilities.json` — portable execution-environment capability names that are intentionally not opcode families.
 
@@ -103,6 +104,6 @@ Recursive escape depth extends the namespace without renumbering any existing co
 
 ## Validation
 
-`.ubc.ast.json` targets JSON Schema Draft 2020-12. Consumers may validate serialized ASTs with any compatible validator.
+`.ubc.ast.json` targets JSON Schema Draft 2020-12. Consumers may validate serialized ASTs with any compatible validator. `registry/opcode-id.schema.json` provides the stricter recursive-opcode identity constraints while legacy AST validation remains permissive enough to accept existing documents.
 
 When adding an opcode or extension group, update the canonical registry in the same change that introduces the allocation. Implementations should derive or verify their local opcode tables against this registry where practical.
