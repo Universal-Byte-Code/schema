@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "registryVersion": 1,
+  "authority": "Universal-Byte-Code",
+  "purpose": "Portable host/runtime capabilities that are intentionally not Ubytec opcode families.",
+  "capabilities": {
+    "host.console": { "status": "reserved", "legacyFamilies": ["syscall", "system"] },
+    "host.filesystem": { "status": "reserved", "legacyFamilies": ["syscall"] },
+    "host.network": { "status": "reserved" },
+    "host.clock": { "status": "reserved", "legacyFamilies": ["system"] },
+    "host.random": { "status": "reserved", "legacyFamilies": ["security", "system"] },
+    "host.process": { "status": "reserved", "legacyFamilies": ["system", "syscall"] },
+    "host.system-metrics": { "status": "reserved", "legacyFamilies": ["system"] },
+    "host.power": { "status": "reserved", "legacyFamilies": ["power"] },
+    "host.audio-device": { "status": "reserved", "legacyFamilies": ["audio"] },
+    "host.device": { "status": "reserved", "legacyFamilies": ["system", "power"] }
+  },
+  "rules": [
+    "Capabilities describe services provided by an execution environment; they are not portable computational opcodes.",
+    "A capability name may be standardized without standardizing an operating-system ABI.",
+    "The opcode registry and capability registry are disjoint namespaces."
+  ]
+}
