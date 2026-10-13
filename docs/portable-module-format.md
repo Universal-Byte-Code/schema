@@ -65,6 +65,12 @@ The Semantic AST section is the normalized Ubytec AST and is required exactly
 once. Its JSON model is governed by `.ubc.ast.json` plus the opcode identity rules
 in `registry/opcode-id.schema.json`.
 
+Parser/runtime-ephemeral syntax identities are not part of that normalized
+semantic representation. A canonical Semantic AST MUST omit `guid` entries inside
+syntax `Metadata` objects. Stable semantic `ID` fields produced by semantic
+normalization remain part of the payload. A verifier MUST reject a Semantic AST
+payload that still contains the omitted volatile syntax GUID metadata.
+
 The Contract manifest carries portable import/export contract metadata when a
 compiler emits such contracts. It is semantic input to linking/dispatch, not an
 authority grant. v0 text is UTF-8 without a BOM and uses LF line endings only.
@@ -82,9 +88,10 @@ preserved because it may be semantic. Duplicate object property names are invali
 Writers MUST emit the same bytes for the same normalized AST. A verifier MUST
 reject a standard JSON section whose bytes are not in canonical v0 layout.
 
-v0 intentionally defines structural JSON canonicalization only. A later format
-revision may replace the AST JSON payload with an indexed executable instruction
-section without changing the outer framing rules.
+v0 intentionally defines structural JSON canonicalization plus the Semantic AST
+volatile-metadata exclusion above. A later format revision may replace the AST
+JSON payload with an indexed executable instruction section without changing the
+outer framing rules.
 
 ## Canonical module production
 
@@ -111,8 +118,9 @@ A v0 verifier MUST check at least:
 4. known flag bits and unknown-critical rejection;
 5. required Semantic AST presence and critical flag;
 6. UTF-8 validity and canonical JSON layout for JSON sections;
-7. canonical LF text for the Contract manifest;
-8. implementation resource limits before allocation.
+7. exclusion of volatile syntax `Metadata.guid` entries from the Semantic AST;
+8. canonical LF text for the Contract manifest;
+9. implementation resource limits before allocation.
 
 Semantic AST validation (opcode identities, control flow, stack discipline,
 signatures and similar language rules) remains a separate layer and should run
