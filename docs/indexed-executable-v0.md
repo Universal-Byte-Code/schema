@@ -213,9 +213,18 @@ is identified portably by the boundary identity `memory.Copy` plus its complete
 signature. A loader or supervisor may allocate any private handle it wants without
 changing module bytes.
 
-Import entries MUST be unique and canonically sorted by their complete encoded
-entry bytes before `ImportIndex` values are assigned. Multiple source-local aliases
-that resolve to the same canonical import MAY lower to the same `ImportIndex`.
+Import rows MUST be canonically sorted by their complete encoded bytes in
+non-decreasing order before `ImportIndex` values are assigned. Unlike String, Type,
+Export and Constant entries, Import rows are **not required to be unique**. Two
+source import declarations that resolve to the same module, public symbol and
+signature remain two distinct table occurrences and therefore two distinct
+`ImportIndex` authority slots. Their encoded rows may be byte-for-byte identical.
+
+This distinction is semantic: a trusted loader may grant one import occurrence and
+deny another even when both target the same receiver. The source-local aliases are
+used only to resolve source `CALL` instructions to those occurrences and are still
+not serialized. Repeated identical rows therefore preserve per-import authority
+without turning an alias, host handle or process address into portable identity.
 
 Capabilities required by an import remain declared through the PMF Capability
 manifest. Presence of an import or capability is not an authority grant.
@@ -326,8 +335,8 @@ outside this profile.
 ### Import-target CALL stack semantics
 
 A `CALL` with `TargetKind = 0x01` preserves the current supervised Ubytec import-call
-semantics; the `ImportIndex` identifies the receiver contract, not a native address
-or a host bridge handle.
+semantics; the `ImportIndex` identifies one receiver-contract authority slot, not a
+native address or a host bridge handle.
 
 Except for the reserved legacy signature described below, caller cells are consumed
 in declaration order as follows:
@@ -436,7 +445,8 @@ MUST check at least:
 
 1. all seven executable sections are present as a complete group;
 2. each table consumes its payload exactly;
-3. canonical string/type/import/export/constant ordering and uniqueness;
+3. canonical ordering and required uniqueness for String, Type, Export and Constant tables,
+   plus non-decreasing canonical ordering for Import rows while allowing equal rows;
 4. every referenced table index is in range;
 5. every function code range is in bounds, non-overlapping and canonically packed;
 6. every function instruction stream ends exactly at its declared `CodeLength`;
@@ -450,9 +460,11 @@ MUST check at least:
 14. each boundary argument uses a defined `PassingMode` and an in-range `TypeIndex`;
 15. v0 `LoanRead`/`LoanWrite` descriptors use the canonical `UInt64` carrier type;
 16. each export `FunctionIndex` exists and its boundary signature is compatible with that function;
-17. imported-call stack effects are derived from the referenced Import entry, including loan
+17. each Import table occurrence remains addressable as its own authority slot even when another
+    occurrence has identical encoded receiver identity and signature bytes;
+18. imported-call stack effects are derived from the referenced Import entry, including loan
     extent cells, the trailing budget/result cells and the reserved legacy bridge signature;
-18. control-flow, stack-depth, signature and return validation required by the
+19. control-flow, stack-depth, signature and return validation required by the
     language semantics is performed before execution.
 
 A structurally valid executable image may still contain unsafe raw memory
@@ -461,10 +473,13 @@ operations. Structural validity must not be confused with memory safety.
 ## Determinism
 
 Canonical table ordering plus fixed-width integer operands make index assignment
-and byte encoding deterministic. Parser-instance GUIDs, source locations, native
-labels, source-local import aliases, module bridge handles, generated host adapter
-symbols, temporary file names, process addresses and backend register choices MUST
-NOT affect any executable-profile section.
+and byte encoding deterministic. Equal Import rows are ordered stably by their
+source declaration occurrence; because equal rows have identical payloads, the table
+bytes remain canonical while their distinct `ImportIndex` positions retain authority
+slot identity for the corresponding lowered calls. Parser-instance GUIDs, source
+locations, native labels, source-local import aliases, module bridge handles,
+generated host adapter symbols, temporary file names, process addresses and backend
+register choices MUST NOT affect any executable-profile section.
 
 Optional diagnostics/source maps belong in a separate non-semantic PMF section in
 a future revision.
