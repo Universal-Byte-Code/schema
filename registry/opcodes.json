@@ -18,6 +18,12 @@
       "A sequence consisting only of one or more 0xFF bytes is an incomplete reserved prefix, never an instruction."
     ]
   },
+  "escape": {
+    "byte": "0xFF",
+    "name": "ESCAPE",
+    "status": "reserved",
+    "assignable": false
+  },
   "statusValues": [
     "assigned",
     "draft",
@@ -90,8 +96,7 @@
     "0x51": { "name": "STORE", "status": "assigned" },
     "0x60": { "name": "CALL", "status": "assigned" },
     "0x61": { "name": "FNADDR", "status": "assigned" },
-    "0x62": { "name": "CALLI", "status": "assigned" },
-    "0xFF": { "name": "ESCAPE", "status": "reserved", "assignable": false }
+    "0x62": { "name": "CALLI", "status": "assigned" }
   },
   "extensionGroupClasses": {
     "appliesToEscapeDepth": { "minimum": 1, "maximum": null },
