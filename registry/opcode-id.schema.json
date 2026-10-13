@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.ubytec.org/opcode-id.schema.json",
+  "title": "Ubytec Opcode Identity",
+  "description": "Canonical core or recursive extended opcode identity.",
+  "oneOf": [
+    {
+      "title": "Core opcode",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 254
+    },
+    {
+      "title": "Extended opcode",
+      "type": "object",
+      "properties": {
+        "OpCode": {
+          "const": 255
+        },
+        "EscapeDepth": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Number of consecutive leading 0xFF escape bytes. Omission means 1 for legacy AST compatibility."
+        },
+        "ExtensionGroup": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 254
+        },
+        "ExtendedOpCode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 254
+        }
+      },
+      "required": [
+        "OpCode",
+        "ExtensionGroup",
+        "ExtendedOpCode"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}
