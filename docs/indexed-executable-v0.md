@@ -5,19 +5,20 @@ Portable Module Format (PMF) modules. It lowers source/AST names to canonical ta
 indices and encodes executable Ubytec instructions as binary opcode streams.
 
 This profile is **not** native code. It contains no x86-64/ARM64 instructions,
-ELF/PE relocations, process addresses or host ABI details.
+ELF/PE relocations, process addresses, runtime handles or host ABI symbols.
 
 ## Goals
 
 The v0 profile establishes these invariants:
 
-1. direct function calls use `FunctionIndex`, never a source function name;
-2. frame accesses use `BindingIndex`, never a source variable name;
-3. type references use `TypeIndex`;
+1. direct function calls use numeric target indices, never source function names;
+2. frame accesses use `BindingIndex`, never source variable names;
+3. language type references use `TypeIndex`;
 4. imports, exports and constants have canonical table indices;
-5. code preserves the opcode identity defined by `docs/opcode-encoding.md`;
-6. the same normalized program produces the same section bytes;
-7. structural verification does not require reparsing Ubytec source or AST JSON.
+5. module-boundary loan semantics are preserved independently from language types;
+6. code preserves the opcode identity defined by `docs/opcode-encoding.md`;
+7. the same normalized program produces the same section bytes;
+8. structural verification does not require reparsing Ubytec source or AST JSON.
 
 Unsafe memory operations remain unsafe. This verifier establishes structural and
 reference integrity; it does not claim memory safety.
@@ -80,6 +81,14 @@ Source-local names do not need to appear merely because they existed in source.
 Strings are principally boundary identities such as module/import/export names and
 custom type names.
 
+The following host/runtime identities MUST NOT be serialized merely because an
+implementation currently uses them:
+
+- source-local import aliases;
+- numeric module-bridge handles;
+- generated host adapter symbols such as `ubytec_host_contract_*`;
+- process addresses or loader-specific relocation names.
+
 ## Type table — `0x0011`
 
 Each type entry is 25 bytes:
@@ -99,6 +108,10 @@ writers MUST sort them by the complete encoded entry bytes before assigning
 
 The reserved bytes exist to keep v0 extensible without borrowing meaning from
 host-language object layout.
+
+`LoanRead` and `LoanWrite` are deliberately **not** type-table entries. They are
+module-boundary passing modes. Treating them as primitive types would conflate the
+language type system with authority/lifetime semantics at a module interface.
 
 ## Function table — `0x0012`
 
@@ -145,6 +158,37 @@ from becoming an implicit backend convention.
 MUST NOT overlap. Canonical writers lay function bodies consecutively in ascending
 `FunctionIndex` order with no padding.
 
+## Boundary parameter descriptors
+
+Imports and exports use a boundary descriptor for each logical argument:
+
+| Size | Field |
+| ---: | --- |
+| 1 | `PassingMode` |
+| 4 | carrier `TypeIndex` |
+
+`PassingMode` values are:
+
+| Value | Name | Meaning |
+| ---: | --- | --- |
+| `0x00` | `Value` | ordinary value argument |
+| `0x01` | `LoanRead` | read-only borrowed region/capability |
+| `0x02` | `LoanWrite` | writable borrowed region/capability |
+| `0x03..0xFF` | reserved | MUST be rejected in v0 |
+
+The `TypeIndex` describes the portable carrier type used by the callable contract.
+For the existing v0 module-call contract, `LoanRead` and `LoanWrite` MUST use the
+canonical `UInt64` carrier type. Their loan semantics come from `PassingMode`, not
+from inventing `LoanRead`/`LoanWrite` primitive types or type modifiers.
+
+A passing mode describes a logical boundary argument. Any runtime bridge that needs
+additional extent, region, validation or ownership metadata MAY materialize that
+metadata in its private calling convention, but those implementation details are
+not part of the portable module image.
+
+Return values have no passing mode in v0. Loan returns are therefore not representable
+and MUST be rejected rather than silently downgraded to a value return.
+
 ## Import table — `0x0013`
 
 Each import entry is:
@@ -152,30 +196,52 @@ Each import entry is:
 | Size | Field |
 | ---: | --- |
 | 4 | module `StringIndex` |
-| 4 | symbol `StringIndex` |
+| 4 | exported symbol `StringIndex` |
 | 4 | return `TypeIndex` |
-| 4 | argument count |
-| 4 × count | argument `TypeIndex` values |
+| 4 | logical argument count |
+| 5 × count | boundary argument descriptors |
+
+The source-local alias and any implementation-assigned bridge handle are resolved
+while lowering and are not serialized. Thus a source declaration such as:
+
+```text
+import Copy from memory.Copy (t_loan_rw,t_loan_ro,t_uint64) -> t_int64
+```
+
+is identified portably by the boundary identity `memory.Copy` plus its complete
+signature. A loader or supervisor may allocate any private handle it wants without
+changing module bytes.
 
 Import entries MUST be unique and canonically sorted by their complete encoded
-entry bytes. Calls to an imported callable use an import-reference operand defined
-by the importing opcode contract; an implementation MUST NOT convert the index to
-a process address inside the portable image.
+entry bytes before `ImportIndex` values are assigned.
 
 Capabilities required by an import remain declared through the PMF Capability
 manifest. Presence of an import or capability is not an authority grant.
 
 ## Export table — `0x0014`
 
-Each export entry is exactly 8 bytes:
+Each export entry is:
 
 | Size | Field |
 | ---: | --- |
-| 4 | symbol `StringIndex` |
+| 4 | public symbol `StringIndex` |
 | 4 | `FunctionIndex` |
+| 4 | return `TypeIndex` |
+| 4 | logical argument count |
+| 5 × count | boundary argument descriptors |
 
-Export names MUST be unique. Writers MUST sort exports by the encoded UTF-8 symbol
-bytes, not by host locale.
+The public symbol is the portable export name from the Ubytec contract. A generated
+host symbol such as `ubytec_host_contract_Main` is backend-specific and MUST NOT be
+serialized into this table.
+
+Export names MUST be unique. Writers MUST sort exports by the encoded UTF-8 public
+symbol bytes before assigning their table order.
+
+If an export has no explicit boundary annotation, its signature is derived from the
+referenced Function table entry with every argument using `PassingMode.Value`.
+If it has an explicit contract annotation, the boundary signature MUST be compatible
+with the referenced function's scalar signature. In the current v0 contract,
+`LoanRead`/`LoanWrite` require a corresponding `UInt64` carrier argument internally.
 
 ## Constant table — `0x0015`
 
@@ -236,11 +302,24 @@ currently executable scalar subset:
 | `VAR` / local initialization | `u32 BindingIndex`, `u64 InitialCell` |
 | `PUSH` | `u8 ByteCount` followed by 1..8 immediate bytes |
 | `DROP`, `PICK`, `ROLL` | `u8 StackIndex` |
-| direct `CALL`, `FNADDR` | `u32 FunctionIndex` |
+| direct `CALL` | `u8 TargetKind`, `u32 TargetIndex` |
+| `FNADDR` | `u32 FunctionIndex` |
 | named `LOAD`, `STORE` | `u8 mode=2`, `u32 BindingIndex` |
 | raw untyped `LOAD`, `STORE` | `u8 mode=0` |
 | raw typed `LOAD`, `STORE` | `u8 mode=1`, `u8 PrimitiveType` |
 | `CALLI` | `u8 ArgumentCount`, `u8 PrimitiveReturnType` |
+
+`CALL.TargetKind` values are:
+
+| Value | Target |
+| ---: | --- |
+| `0x00` | local `FunctionIndex` |
+| `0x01` | `ImportIndex` |
+| `0x02..0xFF` | reserved, MUST be rejected in v0 |
+
+`FNADDR` remains local-only in v0. An imported callable is a module-boundary
+reference, not a portable process address, so taking an imported native address is
+outside this profile.
 
 `InitialCell` is the exact 64-bit cell value produced by the current scalar local
 initializer semantics. An implementation MUST reject a local initializer whose
@@ -266,12 +345,20 @@ func Main() -> t_int64 {
 if `Twice` is `FunctionIndex = 0`, the Code stream contains:
 
 ```text
-11 01 15        ; PUSH, 1 immediate byte, 0x15
-60 00 00 00 00  ; CALL FunctionIndex 0
-09 00           ; RETURN, infer enclosing function result type
+11 01 15           ; PUSH, 1 immediate byte, 0x15
+60 00 00 00 00 00  ; CALL TargetKind.Function, FunctionIndex 0
+09 00              ; RETURN, infer enclosing function result type
 ```
 
 The string `Twice` is not present in the instruction stream.
+
+For an import at `ImportIndex = 3`, the call operand is:
+
+```text
+60 01 03 00 00 00  ; CALL TargetKind.Import, ImportIndex 3
+```
+
+No runtime bridge handle or process address is embedded in either form.
 
 ## Frame-binding lowering
 
@@ -305,11 +392,15 @@ MUST check at least:
 6. every function instruction stream ends exactly at its declared `CodeLength`;
 7. every opcode identity is complete and supported by the verifier;
 8. each operand has the exact wire width required by that opcode;
-9. every `CALL`/`FNADDR` target is a valid `FunctionIndex`;
-10. every named `LOAD`/`STORE` and `VAR` uses a valid binding index in the current function;
-11. primitive type operands contain defined values accepted by that instruction;
-12. an explicit `RETURN TypeIndex` matches the enclosing function result type;
-13. control-flow, stack-depth, signature and return validation required by the
+9. every `CALL` uses a defined target kind and an in-range `FunctionIndex` or `ImportIndex`;
+10. every `FNADDR` references an in-range local `FunctionIndex`;
+11. every named `LOAD`/`STORE` and `VAR` uses a valid binding index in the current function;
+12. primitive type operands contain defined values accepted by that instruction;
+13. an explicit `RETURN TypeIndex` matches the enclosing function result type;
+14. each boundary argument uses a defined `PassingMode` and an in-range `TypeIndex`;
+15. v0 `LoanRead`/`LoanWrite` descriptors use the canonical `UInt64` carrier type;
+16. each export `FunctionIndex` exists and its boundary signature is compatible with that function;
+17. control-flow, stack-depth, signature and return validation required by the
     language semantics is performed before execution.
 
 A structurally valid executable image may still contain unsafe raw memory
@@ -319,7 +410,8 @@ operations. Structural validity must not be confused with memory safety.
 
 Canonical table ordering plus fixed-width integer operands make index assignment
 and byte encoding deterministic. Parser-instance GUIDs, source locations, native
-labels, temporary file names, process addresses and backend register choices MUST
+labels, source-local import aliases, module bridge handles, generated host adapter
+symbols, temporary file names, process addresses and backend register choices MUST
 NOT affect any executable-profile section.
 
 Optional diagnostics/source maps belong in a separate non-semantic PMF section in
@@ -334,7 +426,8 @@ This version does not define:
 - floating-point/vector/tensor/quantum instruction semantics not already allocated;
 - memory safety or borrow checking;
 - JIT/AOT policy;
-- a debug/source-map format.
+- a debug/source-map format;
+- loan returns or imported native function addresses.
 
 Those concerns can evolve independently without changing the basic indexed
 reference model.
