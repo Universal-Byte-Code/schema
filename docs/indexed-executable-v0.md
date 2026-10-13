@@ -135,6 +135,12 @@ ArgumentCount .. ArgumentCount+LocalCount-1 local/frame bindings
 A symbolic source instruction such as `load @counter` is lowered to the numeric
 binding index for `counter`. Names do not survive in the Code section.
 
+Locals declared by the high-level function-local block are semantically initialized
+at function entry. The reference lowerer represents those initializations as
+synthetic portable `VAR` instructions at the start of the function body. A source
+`VAR` retains its source execution position. This prevents initialization timing
+from becoming an implicit backend convention.
+
 `CodeOffset + CodeLength` MUST be within the Code section and function code ranges
 MUST NOT overlap. Canonical writers lay function bodies consecutively in ascending
 `FunctionIndex` order with no padding.
@@ -210,7 +216,7 @@ FF...FF <ExtensionGroup> <ExtendedOpCode>
 ```
 
 Escape depth is semantic and MUST be preserved exactly. A decoder MUST reject
-truncated escape sequences and MUST NOT normalize one escape depth to another.
+truncated escape sequences and MUST NOT normalize one escape depth into another.
 
 ### Operand framing
 
@@ -225,6 +231,9 @@ currently executable scalar subset:
 | Instruction form | Operand bytes |
 | --- | --- |
 | operand-free core opcode | none |
+| `RETURN` inferred type | `u8 mode=0` |
+| `RETURN` explicit type | `u8 mode=1`, `u32 TypeIndex` |
+| `VAR` / local initialization | `u32 BindingIndex`, `u64 InitialCell` |
 | `PUSH` | `u8 ByteCount` followed by 1..8 immediate bytes |
 | `DROP`, `PICK`, `ROLL` | `u8 StackIndex` |
 | direct `CALL`, `FNADDR` | `u32 FunctionIndex` |
@@ -232,6 +241,10 @@ currently executable scalar subset:
 | raw untyped `LOAD`, `STORE` | `u8 mode=0` |
 | raw typed `LOAD`, `STORE` | `u8 mode=1`, `u8 PrimitiveType` |
 | `CALLI` | `u8 ArgumentCount`, `u8 PrimitiveReturnType` |
+
+`InitialCell` is the exact 64-bit cell value produced by the current scalar local
+initializer semantics. An implementation MUST reject a local initializer whose
+value/type cannot be represented by that contract rather than truncate it.
 
 An opcode that has source/AST metadata for which no portable operand contract is
 defined MUST be rejected by the v0 executable lowerer rather than silently dropping
@@ -242,7 +255,7 @@ that metadata.
 Given source:
 
 ```text
-func Twice(x:t_int64) -> t_int64 { ... }
+func Twice(t_int64 x) -> t_int64 { ... }
 func Main() -> t_int64 {
     push 21
     call Twice
@@ -255,7 +268,7 @@ if `Twice` is `FunctionIndex = 0`, the Code stream contains:
 ```text
 11 01 15        ; PUSH, 1 immediate byte, 0x15
 60 00 00 00 00  ; CALL FunctionIndex 0
-09              ; RETURN (when using its operand-free form)
+09 00           ; RETURN, infer enclosing function result type
 ```
 
 The string `Twice` is not present in the instruction stream.
@@ -293,9 +306,10 @@ MUST check at least:
 7. every opcode identity is complete and supported by the verifier;
 8. each operand has the exact wire width required by that opcode;
 9. every `CALL`/`FNADDR` target is a valid `FunctionIndex`;
-10. every named `LOAD`/`STORE` uses a valid binding index in the current function;
+10. every named `LOAD`/`STORE` and `VAR` uses a valid binding index in the current function;
 11. primitive type operands contain defined values accepted by that instruction;
-12. control-flow, stack-depth, signature and return validation required by the
+12. an explicit `RETURN TypeIndex` matches the enclosing function result type;
+13. control-flow, stack-depth, signature and return validation required by the
     language semantics is performed before execution.
 
 A structurally valid executable image may still contain unsafe raw memory
