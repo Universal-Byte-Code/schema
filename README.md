@@ -6,6 +6,7 @@ This repository contains the canonical schema and allocation registries used by 
 
 - `.ubc.ast.json` — JSON Schema for the Ubytec AST.
 - `docs/opcode-encoding.md` — normative opcode namespace and recursive `0xFF` escape encoding.
+- `docs/portable-module-format.md` — canonical architecture-neutral Portable Module Format v0 framing and verification rules.
 - `registry/opcode-id.schema.json` — schema for core and recursive extended opcode identities.
 - `registry/opcodes.json` — canonical opcode and extension-group allocation registry.
 - `registry/capabilities.json` — portable execution-environment capability names that are intentionally not opcode families.
@@ -13,6 +14,14 @@ This repository contains the canonical schema and allocation registries used by 
 ## AST model
 
 A Ubytec AST is rooted at `RootSentence` and contains nested syntax sentences and nodes. Each node carries an `Operation`, source tokens, and metadata. The schema is intended to preserve enough structural and source information for compilers, interpreters, analyzers, debuggers, and other tooling to exchange Ubytec programs consistently.
+
+## Portable module format
+
+Portable Module Format (PMF) is the canonical binary container for normalized Ubytec modules. PMF v0 defines deterministic framing, critical/optional section handling, canonical semantic-AST transport and bounded verification while remaining independent of x86-64, ARM64 and host executable formats.
+
+The v0 container is intentionally a foundation for the later indexed executable representation: symbolic function/local operands remain part of the semantic AST in v0 and will be lowered into canonical tables and instruction indices in a later revision/section without changing the outer framing model.
+
+See [`docs/portable-module-format.md`](docs/portable-module-format.md).
 
 ## Opcode namespace
 
