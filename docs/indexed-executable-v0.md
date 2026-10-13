@@ -181,10 +181,11 @@ For the existing v0 module-call contract, `LoanRead` and `LoanWrite` MUST use th
 canonical `UInt64` carrier type. Their loan semantics come from `PassingMode`, not
 from inventing `LoanRead`/`LoanWrite` primitive types or type modifiers.
 
-A passing mode describes a logical boundary argument. Any runtime bridge that needs
-additional extent, region, validation or ownership metadata MAY materialize that
-metadata in its private calling convention, but those implementation details are
-not part of the portable module image.
+A passing mode describes one logical receiver argument. The import-call semantics
+below define the architecture-neutral caller-side extent and control cells that are
+observable in Ubytec source. A runtime bridge MAY materialize additional validation,
+ownership, transport or host-ABI metadata internally, but those additional details
+are not part of the portable module image.
 
 Return values have no passing mode in v0. Loan returns are therefore not representable
 and MUST be rejected rather than silently downgraded to a value return.
@@ -213,7 +214,8 @@ signature. A loader or supervisor may allocate any private handle it wants witho
 changing module bytes.
 
 Import entries MUST be unique and canonically sorted by their complete encoded
-entry bytes before `ImportIndex` values are assigned.
+entry bytes before `ImportIndex` values are assigned. Multiple source-local aliases
+that resolve to the same canonical import MAY lower to the same `ImportIndex`.
 
 Capabilities required by an import remain declared through the PMF Capability
 manifest. Presence of an import or capability is not an authority grant.
@@ -321,6 +323,54 @@ currently executable scalar subset:
 reference, not a portable process address, so taking an imported native address is
 outside this profile.
 
+### Import-target CALL stack semantics
+
+A `CALL` with `TargetKind = 0x01` preserves the current supervised Ubytec import-call
+semantics; the `ImportIndex` identifies the receiver contract, not a native address
+or a host bridge handle.
+
+Except for the reserved legacy signature described below, caller cells are consumed
+in declaration order as follows:
+
+- `PassingMode.Value`: one value cell;
+- `PassingMode.LoanRead`: two cells, `(local_address, logical_length)`;
+- `PassingMode.LoanWrite`: two cells, `(local_address, logical_length)`;
+- after all declared arguments: one `budget_ms` cell;
+- finally: one local `result_address` cell.
+
+`budget_ms = 0` requests no deadline. Loan lengths constrain the supervised region
+and are not additional receiver arguments. The receiver sees one carrier value per
+logical argument; for a loan that carrier is the address of the receiver's isolated
+mapping. The receiver's declared return value is written to `result_address` after a
+successful invocation. The importing `CALL` itself pushes the supervisor status
+result, preserving the source-level distinction between invocation status and the
+receiver's return value.
+
+The compiler/runtime MAY allocate a private import handle, staging records, mappings
+or transport descriptors, but those are implementation details. They MUST NOT be
+required as explicit portable stack cells and MUST NOT appear in the Import table or
+Code stream.
+
+For compatibility with the existing one-buffer bridge, the exact reserved receiver
+signature
+
+```text
+(UInt64, UInt64, UInt64, UInt64) -> Int64
+```
+
+uses the legacy five-control-cell caller form:
+
+```text
+local_buffer, logical_length, requested_rights, budget_ms, result_address
+```
+
+rather than the generic four-value-plus-two-control-cell form. This signature is
+reserved in v0; typed callers that need four ordinary `UInt64` receiver arguments
+MUST use a different contract shape until the legacy bridge is retired or versioned.
+
+A semantic verifier SHOULD derive the required imported-call stack effect from the
+referenced Import entry and MUST apply this reserved-signature rule consistently.
+
 `InitialCell` is the exact 64-bit cell value produced by the current scalar local
 initializer semantics. An implementation MUST reject a local initializer whose
 value/type cannot be represented by that contract rather than truncate it.
@@ -400,7 +450,9 @@ MUST check at least:
 14. each boundary argument uses a defined `PassingMode` and an in-range `TypeIndex`;
 15. v0 `LoanRead`/`LoanWrite` descriptors use the canonical `UInt64` carrier type;
 16. each export `FunctionIndex` exists and its boundary signature is compatible with that function;
-17. control-flow, stack-depth, signature and return validation required by the
+17. imported-call stack effects are derived from the referenced Import entry, including loan
+    extent cells, the trailing budget/result cells and the reserved legacy bridge signature;
+18. control-flow, stack-depth, signature and return validation required by the
     language semantics is performed before execution.
 
 A structurally valid executable image may still contain unsafe raw memory
