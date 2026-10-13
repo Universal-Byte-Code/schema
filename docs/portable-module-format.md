@@ -87,6 +87,18 @@ The Contract manifest carries portable import/export contract metadata when a
 compiler emits such contracts. It is semantic input to linking/dispatch, not an
 authority grant. v0 text is UTF-8 without a BOM and uses LF line endings only.
 
+A payload in `0x0002` MUST itself be architecture/runtime-neutral. A legacy native
+runtime manifest containing implementation-assigned import handles, source-local
+aliases used only for host dispatch, generated adapter symbols such as
+`ubytec_host_contract_*`, process addresses or host ABI identities MUST NOT be
+serialized as PMF Contract manifest data.
+
+When the indexed executable profile is present, sections `0x0013` and `0x0014` are
+the normative portable import/export representation. Canonical writers SHOULD omit
+`0x0002` unless they have additional architecture-neutral contract information that
+is not already represented by those tables; any such information MUST NOT conflict
+with the indexed tables.
+
 The Capability manifest carries portable execution-environment capability
 requirements from `registry/capabilities.json`. Presence of a capability states a
 requirement; it does not itself grant access.
