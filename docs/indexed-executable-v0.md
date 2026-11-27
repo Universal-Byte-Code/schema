@@ -317,6 +317,7 @@ currently executable scalar subset:
 | `PUSH` | `u8 ByteCount` followed by 1..8 immediate bytes |
 | `DROP`, `PICK`, `ROLL` | `u8 StackIndex` |
 | `SWITCH`, `DEFAULT`, `END` | none |
+| `BREAK`, `CONTINUE` | `u32 ControlTargetOrdinal` |
 | `BRANCH` | `u64 CaseCell` |
 | `FF 10 11` (`PUSH16`) | `u16 ByteOffset` |
 | `FF 10 18` (`DROP16`), `FF 10 1D` (`PICK16`), `FF 10 1E` (`ROLL16`) | `u16 StackIndex` |
@@ -414,17 +415,40 @@ scalar value behavior (push 1). No implicit fallthrough between cases exists.
 
 Let d be the evaluation depth after consuming the selector. Every case and
 default starts at d. All reachable exits MUST agree on one depth; a missing
-default contributes d. BREAK exits the nearest enclosing loop or SWITCH
-(including from its BRANCH), and contributes the corresponding entry baseline.
-CONTINUE targets only a loop, not SWITCH. RETURN and TRAP do not contribute
+default contributes d. BREAK exits the selected enclosing loop or SWITCH and contributes the
+corresponding entry baseline. CONTINUE targets only a loop, not SWITCH.
+Both use the relative control-target operand defined below. RETURN and TRAP do not contribute
 a normal exit. Nested switches preserve independent selector snapshots.
 
 The verifier MUST reject misplaced BRANCH, duplicate DEFAULT markers,
 instructions directly inside SWITCH before a case/default, unbalanced
 structures, and inconsistent reachable exit depths. Selector storage is
-not a source BindingIndex or evaluation-stack cell. This first wire form
-does not encode source control labels or typed selection metadata; those
-variants MUST be rejected instead of silently erased.
+not a source BindingIndex or evaluation-stack cell. Source control labels are resolved to relative target ordinals below. Typed
+selection metadata still has no contract and MUST be rejected rather than
+silently erased.
+
+## Relative structured control transfers (context wire version 1)
+
+BREAK and CONTINUE carry exactly one little-endian u32 ControlTargetOrdinal.
+Eligible scopes are enumerated from innermost to outermost within the current
+function. For BREAK the list consists of LOOP, WHILE and SWITCH. A BRANCH is
+an alias for its owning SWITCH, not a distinct target. For CONTINUE the list
+contains only LOOP and WHILE. BLOCK, IF, ELSE and DEFAULT do not introduce
+additional targets. Ordinal zero selects the nearest eligible target.
+
+A source label MUST be resolved before emission, including BRANCH labels
+that alias the owning SWITCH. An unresolved label MUST fail. Source label
+numbers and native branch addresses are not executable operands. The
+independent verifier MUST reject an out-of-range ordinal even in unreachable
+code and enforce the selected target's stack-depth invariants on reachable
+paths. BREAK contributes the selected target's exit baseline; CONTINUE
+requires the selected loop's backedge depth. Nonlocal transfers cannot cross
+the enclosing function boundary. Native lowering must branch directly to
+the verified target, not perform a guest-controlled indirect jump.
+
+Earlier context wire version 0 encoded these instructions without operands
+and MUST be rejected by this version's reader; recompile draft images.
+The context section version distinguishes the two instruction framings.
 
 ## Extended stack instructions
 
