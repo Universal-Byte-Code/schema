@@ -37,7 +37,9 @@ An indexed executable image is represented by the following PMF section kinds:
 | `0x0015` | Constant table | yes | critical |
 | `0x0016` | Code | yes | critical |
 
-All seven sections MUST either be present exactly once or be absent as a group.
+All seven base sections and the critical Function contexts section defined in
+[indexed-executable-context-v0.md](indexed-executable-context-v0.md) MUST either be
+present exactly once or be absent as a group.
 Zero-entry tables are encoded as sections with `EntryCount = 0`; omitting one table
 from an otherwise executable profile is invalid.
 
@@ -118,7 +120,8 @@ language type system with authority/lifetime semantics at a module interface.
 Functions are assigned `FunctionIndex` values in canonical declaration order after
 flattening executable module-level and nested callables. Source names are used by
 the compiler only to resolve references during lowering; they are not required in
-this table.
+this table. The Function contexts section preserves lexical parent relationships
+and independently verifiable access restrictions.
 
 Each function entry begins with the fixed header:
 
@@ -467,7 +470,8 @@ MUST check at least:
 19. control-flow, stack-depth, signature and return validation required by the
     language semantics is performed before execution.
 
-A structurally valid executable image may still contain unsafe raw memory
+The contextual execution profile adds mandatory lexical access checks and may
+restrict the supported instructions. A structurally valid executable image may still contain unsafe raw memory
 operations. Structural validity must not be confused with memory safety.
 
 ## Determinism

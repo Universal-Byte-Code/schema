@@ -36,6 +36,9 @@ Any other value MUST reference an existing Function-table entry. The referenced
 function MUST have zero arguments. Its result MAY be `Void` or any return type
 accepted by the target backend's ordinary Ubytec function ABI.
 
+Only a top-level function (parent NoIndex in the critical Function contexts
+section) may be selected as the process entrypoint.
+
 A module MUST contain at most one `0x0017` section. Its payload length, flags and
 FunctionIndex are part of structural verification.
 
