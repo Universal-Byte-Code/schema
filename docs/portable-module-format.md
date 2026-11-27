@@ -69,6 +69,7 @@ ordering rule.
 | `0x0015` | Indexed constant table | profile | critical | binary |
 | `0x0016` | Indexed code | profile | critical | binary |
 | `0x0018` | Function contexts and execution profile | profile | critical | binary |
+| `0x0019` | Callable slot signatures | CallableLocal only | critical | binary |
 
 `profile` means the section is required exactly once when any indexed executable
 section is present. The seven indexed sections form one all-or-none group and are

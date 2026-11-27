@@ -7,6 +7,7 @@ This repository contains the canonical schema and allocation registries used by 
 - `.ubc.ast.json` — JSON Schema for the Ubytec AST.
 - `docs/opcode-encoding.md` — normative opcode namespace and recursive `0xFF` escape encoding.
 - `docs/portable-module-format.md` — canonical architecture-neutral Portable Module Format v0 framing and verification rules.
+- `docs/indexed-executable-callable-v0.md` — draft activation-local callable authority and wire contract.
 - `registry/opcode-id.schema.json` — schema for core and recursive extended opcode identities.
 - `registry/opcodes.json` — canonical opcode and extension-group allocation registry.
 - `registry/capabilities.json` — portable execution-environment capability names that are intentionally not opcode families.

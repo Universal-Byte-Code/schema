@@ -1,0 +1,26 @@
+name: Callable capability reference model
+
+on:
+  push:
+    paths:
+      - 'tests/test_callable_capability.py'
+      - 'docs/indexed-executable-callable-v0.md'
+      - 'registry/opcodes.json'
+      - '.github/workflows/callable-model.yml'
+  pull_request:
+    paths:
+      - 'tests/test_callable_capability.py'
+      - 'docs/indexed-executable-callable-v0.md'
+      - 'registry/opcodes.json'
+      - '.github/workflows/callable-model.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reference-model:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests -p 'test_callable_capability.py' -v
+      - run: python3 -m json.tool registry/opcodes.json > /dev/null

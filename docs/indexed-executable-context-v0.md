@@ -16,7 +16,7 @@ All fields are little-endian u32:
 | Field | Meaning |
 | --- | --- |
 | Version | 0 |
-| ExecutionProfile | 0 = UnsafeCells, 1 = DirectOnly |
+| ExecutionProfile | 0 = UnsafeCells, 1 = DirectOnly, 2 = CallableLocal |
 | FunctionCount | exactly the Function table count |
 | ParentFunctionIndex × FunctionCount | one entry per FunctionIndex |
 
@@ -70,7 +70,9 @@ a grant or a trusted policy. Do not silently downgrade. No capability grants are
 created by the section. Frame-reusing tail calls are excluded from DirectOnly
 until lifetime/translation semantics are specified.
 
-## Future typed callable authority (separate proposal, not allocated here)
+## Typed callable authority (separate draft)
+
+[CallableLocal](indexed-executable-callable-v0.md) defines the initial activation-local bank, critical section and draft opcode allocations. The broader model below remains future work.
 
 A protected capability profile will distinguish ordinary integers, raw addresses
 and callable references, with a callable's exact signature, target identity,
