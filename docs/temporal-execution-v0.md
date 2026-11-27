@@ -111,8 +111,9 @@ If no turn or admission makes progress, the result is quiescent with explicit
 blocked contexts and pending requests. The coordinator may resume only on
 a specified subsequent external admission; it MUST NOT invent a timer tick,
 receive or successful operation. For the finite reference, absent such input,
-report quiescence rather than spin. Journal entries for later unreachable
-rounds require an explicit wake/resume contract (not defined by this draft).
+report quiescence rather than spin. A finite reference with a recorded future journal admission MAY resume at its
+explicit target round, skipping only empty quiescent rounds. No implicit clock
+sampling or autonomous wakeup is implied. Admission order is unchanged.
 A fully terminated session admits no additional effects.
 
 Parallel implementations may evaluate isolated private work concurrently.
@@ -204,9 +205,19 @@ A timer/deadline is expressed in the same domain. A clock observation
 admitted to the coordinator can enable a timer when sample >= deadline;
 equal deadlines are ordered by registration commit then timer ordinal.
 Delivery is a separate committed event depending on both registration and
-the enabling sample. Timer registration, cancellation and expiry require
-an explicit contract and journal; they are not available in the initial
-effect-only reference. No hard real-time or exact wakeup guarantee.
+the enabling sample. The reference sleep-until operation registers a single absolute deadline per
+context, commits registration, then suspends further turns. It requires
+explicit timer authority. A later admitted clock sample (request result or
+coordinator journal entry) delivers all eligible timers in ascending
+(deadline, registration commit, timer ordinal) order. Delivery depends on
+registration and sample, consumes no instruction fuel and makes the context
+eligible at the next frontier snapshot (same round if before that snapshot).
+Even an already-past deadline requires a subsequent admitted observation.
+Cancellation of the sleeping context removes its pending timer, with the
+registration and cancellation admission as predecessors; no later expiry.
+The initial reference uses context ordinal as tie-break because only one
+timer per context may be pending. Multiple timers, independent timer
+cancellation handles and autonomous live wake policy remain separate. No hard real-time or exact wakeup guarantee.
 
 Fixed-step application logic uses checked integer accumulation:
 
