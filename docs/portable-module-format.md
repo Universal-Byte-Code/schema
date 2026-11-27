@@ -50,9 +50,10 @@ There is no implicit alignment or padding in v0.
 ### Flags
 
 `SectionFlags` bit 0 is `critical`. All other bits are reserved and MUST be zero.
-An unknown critical section MUST cause rejection. An unknown non-critical section
-MAY be retained or skipped, but canonical writers MUST preserve the global section
-ordering rule.
+An unknown critical section MUST cause rejection. An unknown non-critical section MAY be skipped by a reader that does not
+rewrite the image. Canonical PMF rewriters MUST preserve unknown optional
+sections byte-for-byte and maintain global section ordering. A recognized
+non-critical section MUST satisfy its specified framing and invariants.
 
 ## Standard v0 sections
 
@@ -68,12 +69,17 @@ ordering rule.
 | `0x0014` | Indexed export table | profile | critical | binary |
 | `0x0015` | Indexed constant table | profile | critical | binary |
 | `0x0016` | Indexed code | profile | critical | binary |
+| `0x0017` | Process entrypoint | optional, indexed only | non-critical (flags 0) | u32 FunctionIndex or NoIndex |
 | `0x0018` | Function contexts and execution profile | profile | critical | binary |
 | `0x0019` | Callable slot signatures | CallableLocal only | critical | binary |
 
-`profile` means the section is required exactly once when any indexed executable
-section is present. The seven indexed sections form one all-or-none group and are
-defined normatively in `indexed-executable-v0.md`.
+`profile` means each of 0x0010 through 0x0016 and 0x0018 is required exactly
+once whenever an indexed executable is present. These eight sections form one
+all-or-none group, defined in `indexed-executable-v0.md` and
+`indexed-executable-context-v0.md`. Section 0x0019 is required exactly once for
+CallableLocal and forbidden for other profiles. Section 0x0017 is optional but
+requires the complete indexed group and MUST satisfy
+`indexed-executable-entrypoint-v0.md`; an AST-only image MUST NOT contain it.
 
 The Semantic AST section is the normalized Ubytec AST and is required exactly
 once. Its JSON model is governed by `.ubc.ast.json` plus the opcode identity rules
@@ -137,7 +143,7 @@ normalization/validation and before PMF assembly:
 normalized semantic module
   -> indexed tables + opcode stream
   -> indexed executable verification
-  -> PMF sections 0x0010..0x0016
+  -> PMF sections 0x0010..0x0016 and 0x0018 (+ conditional 0x0019, optional 0x0017)
 ```
 
 Backend-specific code generation is downstream of semantic normalization and is
