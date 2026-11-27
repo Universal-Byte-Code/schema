@@ -13,8 +13,10 @@ entrypoint by reparsing the Semantic AST, searching for a source name such as
 Section kind `0x0017` carries process-start metadata for the indexed executable
 profile.
 
-The section is optional and MUST use PMF flags `0` (non-critical). Absence means the
-module is a library and has no automatic process entrypoint.
+The section is optional and MUST use PMF flags `0` (non-critical). It MUST NOT
+appear in an AST-only PMF; it requires the complete indexed executable group,
+including 0x0018. For an indexed module, absence means library, with no
+automatic process entrypoint.
 
 Making this section non-critical is intentional and fail-closed: a PMF reader that
 does not understand process-start metadata can still inspect or preserve the module,
@@ -81,11 +83,12 @@ names, native labels, addresses or host handles in this section.
 
 A verifier MUST reject:
 
-- duplicate `0x0017` sections;
+- duplicate `0x0017` sections or presence without the complete indexed executable group;
 - non-zero section flags;
 - payload lengths other than four bytes;
 - a non-`NoIndex` FunctionIndex outside the Function table;
-- an entry function with one or more arguments.
+- an entry function with one or more arguments;
+- a non-`NoIndex` entry function that is not top-level.
 
 This extension is stacked on `docs/indexed-executable-v0.md` and does not change the
 wire encoding of the existing `0x0010..0x0016` section group.
