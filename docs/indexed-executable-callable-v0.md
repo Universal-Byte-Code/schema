@@ -133,3 +133,13 @@ FNADDR, CALLI, raw LOAD/STORE, imports and loan exports in CallableLocal.
 Test verifier acceptance separately from backend execution. The reference model
 in tests/test_callable_capability.py exercises only the new table/instruction
 and activation-bank semantics, not full PMF or native execution.
+
+## Integration with scalar core completion
+
+The complete DirectOnly scalar subset includes SWITCH/BRANCH, contextual DEFAULT,
+NOP and the four bounded extended stack operations. A backend MUST reserve selector
+snapshots and callable slots in disjoint activation storage, also disjoint from
+scalar bindings and live evaluation cells. Verify extended reads against logical
+scalar evaluation depth before code generation, including after a switch merge.
+No selector or slot index is a scalar-addressable location. The absence of a
+required/forbidden section is distinct from a present zero-length payload.

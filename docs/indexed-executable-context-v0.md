@@ -57,15 +57,17 @@ all imports, and non-Value export passing modes. Named frame LOAD/STORE, scalar
 operations with defined stack effects, structured control and visible direct
 calls are admitted. The allowed opcode set is closed: RETURN, VAR, PUSH,
 DROP/PICK/ROLL, CALL(Function), named LOAD/STORE, BLOCK/LOOP/IF/WHILE/ELSE/END,
-BREAK/CONTINUE, TRAP/CLEAR/NULL/DEFAULT, POP/DUP/SWAP/ROT/OVER/NIP,
+SWITCH/BRANCH/DEFAULT, BREAK/CONTINUE, NOP/TRAP/CLEAR/NULL, POP/DUP/SWAP/ROT/OVER/NIP,
 2DUP/2SWAP/2ROT/2OVER, and the existing scalar arithmetic/bitwise/comparison
-opcodes 0x20–0x2A, 0x30–0x36, 0x40–0x49. Other opcodes MUST be rejected.
+opcodes 0x20–0x2A, 0x30–0x36, 0x40–0x49, and depth-one group 0x10
+PUSH16/DROP16/PICK16/ROLL16 subject to the exact stack bounds in the indexed
+executable contract. Other opcodes MUST be rejected.
 All regular independent verifier invariants still apply. This profile does not
 establish temporal safety, correct native translation, stack resource limits,
 complete native CFI, or isolation from an untrusted embedding host.
 
 An admission policy requiring DirectOnly MUST check the profile explicitly and
-reject UnsafeCells and AST-only inputs; a producer's declaration is not itself
+reject UnsafeCells, CallableLocal and AST-only inputs; a producer's declaration is not itself
 a grant or a trusted policy. Do not silently downgrade. No capability grants are
 created by the section. Frame-reusing tail calls are excluded from DirectOnly
 until lifetime/translation semantics are specified.
