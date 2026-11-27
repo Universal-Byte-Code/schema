@@ -318,7 +318,7 @@ currently executable scalar subset:
 | `DROP`, `PICK`, `ROLL` | `u8 StackIndex` |
 | `SWITCH`, `DEFAULT`, `END` | none |
 | `BREAK`, `CONTINUE` | `u32 ControlTargetOrdinal` |
-| `BLOCK` | `u8 ResultMode`, followed by `u32 TypeIndex` only for mode 1 |
+| `BLOCK` | `u8 Mode`; mode 0: none; mode 1: `u32 ResultTypeIndex`; mode 2: `u8 Policy`, `u32 InputCount`, input `TypeIndex` entries, `u32 ResultTypeIndex` |
 | `BRANCH` | `u64 CaseCell` |
 | `FF 10 11` (`PUSH16`) | `u16 ByteOffset` |
 | `FF 10 18` (`DROP16`), `FF 10 1D` (`PICK16`), `FF 10 1E` (`ROLL16`) | `u16 StackIndex` |
@@ -432,7 +432,7 @@ silently erased.
 
 BLOCK begins with a one-byte ResultMode. Mode 0 has no further operand and
 introduces an untyped lexical scope. Mode 1 is followed by a little-endian
-u32 TypeIndex into the executable type table. All other modes are invalid.
+u32 TypeIndex into the executable type table. Mode 2 is the explicit contract defined below. All other modes are invalid.
 
 The result type must be void or one supported scalar cell, with array extent
 one. Void has no modifiers; scalar cells admit only the existing cell type
@@ -452,13 +452,63 @@ This is a scalar result-count and canonicalization contract, not general
 static typing of the evaluation stack. Typed conditional comparisons and
 other control metadata retain their separately specified restrictions.
 
+## Explicit BLOCK input/result contracts (context wire version 3)
+
+Mode 2 extends BLOCK, without adding an opcode. Payload after the mode byte:
+
+| Field | Encoding |
+| --- | --- |
+| Policy | u8, 0 = unchecked, 1 = checked |
+| InputCount | u32, 0 through 1024 |
+| InputTypeIndex[InputCount] | u32 each, deepest input first |
+| ResultTypeIndex | u32, scalar or void |
+
+All u32 fields are little-endian. Each input is a supported scalar cell
+type, never void; the result is scalar or void. Unknown modes, policies,
+indices, unsupported types and truncated operands MUST be rejected even
+in unreachable code.
+
+For entry depth d and N inputs, require at least N cells above the nearest
+enclosing contracted block's floor, if any. This block's floor is d-N.
+Inputs are canonicalized in place at entry, in declared order. All reachable
+stack reads, writes, removal, call operands and nested block input access MUST
+remain at or above this floor; a two-byte PUSH16 read must also remain wholly
+within this region. CLEAR is rejected anywhere inside a contracted block
+because it resets the whole function evaluation stack. The floor is a
+logical evaluation-stack boundary, not general memory isolation: UnsafeCells
+still permits raw memory/address authority and is not a safe profile.
+
+At normal END and every BREAK targeting this block, depth MUST equal
+floor + result cells (zero for void, one otherwise). Both paths converge
+on the same result canonicalization before continuing. BREAK selects
+contracted BLOCKs as eligible enclosing targets; mode 0 and 1 BLOCKs
+retain their original non-target lexical semantics. CONTINUE still
+selects only loops. Transfer to a different enclosing eligible target,
+RETURN or TRAP abandons the block, producing no block result; other target
+depth contracts still apply. No cross-function transfer is admitted.
+
+Unchecked uses the ordinary canonicalization of the declared type.
+Checked compares the full original 64-bit cell to the canonicalized cell
+and traps if they differ. This applies both at input admission and to the
+result on END/BREAK. It detects noncanonical narrowing and Boolean values
+other than 0 or 1. The original cell is untyped, so this is representability
+as the destination's canonical bit pattern, not a typed mathematical cast
+from a known signed/unsigned source. Int64 and UInt64 admit all bit patterns;
+checked does not check overflow of intermediate arithmetic or change
+arithmetic opcode semantics. No output cell is created on a checked failure.
+
+Source syntax is a separate frontend concern. Proposed spelling:
+`block (t_int64, t_int64) -> t_int16` and
+`block checked (t_int64, t_int64) -> t_int16`.
+The v3 wire contract does not imply the frontend already supports this spelling.
+
 ## Relative structured control transfers (introduced in context wire version 1)
 
 BREAK and CONTINUE carry exactly one little-endian u32 ControlTargetOrdinal.
 Eligible scopes are enumerated from innermost to outermost within the current
-function. For BREAK the list consists of LOOP, WHILE and SWITCH. A BRANCH is
+function. For BREAK the list consists of LOOP, WHILE, SWITCH and mode 2 contracted BLOCK. A BRANCH is
 an alias for its owning SWITCH, not a distinct target. For CONTINUE the list
-contains only LOOP and WHILE. BLOCK, IF, ELSE and DEFAULT do not introduce
+contains only LOOP and WHILE. Mode 0/1 BLOCK, IF, ELSE and DEFAULT do not introduce
 additional targets. Ordinal zero selects the nearest eligible target.
 
 A source label MUST be resolved before emission, including BRANCH labels
@@ -472,8 +522,9 @@ the enclosing function boundary. Native lowering must branch directly to
 the verified target, not perform a guest-controlled indirect jump.
 
 Earlier context wire version 0 encoded transfers without operands. Version 1
-introduced transfer operands; version 2 adds BLOCK result framing. Readers of
-the current version MUST reject both earlier drafts; recompile their images.
+introduced transfer operands; version 2 added BLOCK result framing; version 3
+adds explicit block contracts and target eligibility. Readers of version 3 MUST
+reject all earlier contextual drafts; recompile their images.
 
 ## Extended stack instructions
 
