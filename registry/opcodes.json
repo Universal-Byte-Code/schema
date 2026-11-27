@@ -124,6 +124,17 @@
     },
     "1:0x11": { "name": "extended-memory", "status": "reserved", "authority": "Universal-Byte-Code" },
     "1:0x12": { "name": "extended-numeric", "status": "reserved", "authority": "Universal-Byte-Code" },
+    "1:0x13": {
+      "name": "callable-capability",
+      "status": "draft",
+      "authority": "Universal-Byte-Code",
+      "opcodes": {
+        "0x00": { "name": "CAP_BIND", "status": "draft" },
+        "0x01": { "name": "CAP_COPY", "status": "draft" },
+        "0x02": { "name": "CAP_CLEAR", "status": "draft" },
+        "0x03": { "name": "CAP_CALL", "status": "draft" }
+      }
+    },
     "1:0x20": { "name": "vector-simd", "status": "reserved", "authority": "Universal-Byte-Code", "legacyFamily": "vector" },
     "1:0x21": { "name": "atomics", "status": "reserved", "authority": "Universal-Byte-Code", "legacyFamily": "threading" },
     "1:0x22": { "name": "concurrency", "status": "reserved", "authority": "Universal-Byte-Code", "legacyFamily": "threading" },
