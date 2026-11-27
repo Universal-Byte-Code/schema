@@ -8,15 +8,15 @@ reintroducing names into executable code. It does not certify source intent.
 
 Every indexed executable module MUST contain exactly one critical 0x0018 section
 in addition to the seven base indexed sections. AST-only PMF MUST NOT contain it.
-Earlier draft indexed images lacking this section or carrying context version 0
-MUST be recompiled. Version 1 changes BREAK/CONTINUE operand framing; do not
-reinterpret the previous draft bytes. A reader that does not recognize 0x0018 MUST reject it.
+Earlier draft indexed images lacking this section or carrying context versions 0 or 1
+MUST be recompiled. Version 1 changed BREAK/CONTINUE operand framing; version 2
+adds BLOCK result framing. Do not reinterpret previous draft bytes. A reader that does not recognize 0x0018 MUST reject it.
 
 All fields are little-endian u32:
 
 | Field | Meaning |
 | --- | --- |
-| Version | 1 (relative control-transfer operands) |
+| Version | 2 (relative control transfers and BLOCK result operands) |
 | ExecutionProfile | 0 = UnsafeCells, 1 = DirectOnly, 2 = CallableLocal |
 | FunctionCount | exactly the Function table count |
 | ParentFunctionIndex × FunctionCount | one entry per FunctionIndex |

@@ -318,6 +318,7 @@ currently executable scalar subset:
 | `DROP`, `PICK`, `ROLL` | `u8 StackIndex` |
 | `SWITCH`, `DEFAULT`, `END` | none |
 | `BREAK`, `CONTINUE` | `u32 ControlTargetOrdinal` |
+| `BLOCK` | `u8 ResultMode`, followed by `u32 TypeIndex` only for mode 1 |
 | `BRANCH` | `u64 CaseCell` |
 | `FF 10 11` (`PUSH16`) | `u16 ByteOffset` |
 | `FF 10 18` (`DROP16`), `FF 10 1D` (`PICK16`), `FF 10 1E` (`ROLL16`) | `u16 StackIndex` |
@@ -427,7 +428,31 @@ not a source BindingIndex or evaluation-stack cell. Source control labels are re
 selection metadata still has no contract and MUST be rejected rather than
 silently erased.
 
-## Relative structured control transfers (context wire version 1)
+## Lexical BLOCK results (context wire version 2)
+
+BLOCK begins with a one-byte ResultMode. Mode 0 has no further operand and
+introduces an untyped lexical scope. Mode 1 is followed by a little-endian
+u32 TypeIndex into the executable type table. All other modes are invalid.
+
+The result type must be void or one supported scalar cell, with array extent
+one. Void has no modifiers; scalar cells admit only the existing cell type
+modifiers. Unknown indices and unsupported types MUST be rejected even in
+unreachable code. An untyped BLOCK preserves the actual reachable evaluation
+stack depth at its normal END. A typed BLOCK requires the normal exit depth
+to be its entry depth plus zero for void or one for a scalar result.
+
+At a reachable normal END of a scalar-result BLOCK the top cell is
+canonicalized to the declared scalar type using the same signed extension,
+unsigned extension or boolean normalization as a function return. An END
+on an unreachable path does not introduce a reachable successor. RETURN,
+TRAP and transfers to eligible enclosing controls do not manufacture a
+BLOCK result. BLOCK itself is not a BREAK or CONTINUE target.
+
+This is a scalar result-count and canonicalization contract, not general
+static typing of the evaluation stack. Typed conditional comparisons and
+other control metadata retain their separately specified restrictions.
+
+## Relative structured control transfers (introduced in context wire version 1)
 
 BREAK and CONTINUE carry exactly one little-endian u32 ControlTargetOrdinal.
 Eligible scopes are enumerated from innermost to outermost within the current
@@ -446,9 +471,9 @@ requires the selected loop's backedge depth. Nonlocal transfers cannot cross
 the enclosing function boundary. Native lowering must branch directly to
 the verified target, not perform a guest-controlled indirect jump.
 
-Earlier context wire version 0 encoded these instructions without operands
-and MUST be rejected by this version's reader; recompile draft images.
-The context section version distinguishes the two instruction framings.
+Earlier context wire version 0 encoded transfers without operands. Version 1
+introduced transfer operands; version 2 adds BLOCK result framing. Readers of
+the current version MUST reject both earlier drafts; recompile their images.
 
 ## Extended stack instructions
 
