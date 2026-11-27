@@ -313,6 +313,10 @@ currently executable scalar subset:
 | `VAR` / local initialization | `u32 BindingIndex`, `u64 InitialCell` |
 | `PUSH` | `u8 ByteCount` followed by 1..8 immediate bytes |
 | `DROP`, `PICK`, `ROLL` | `u8 StackIndex` |
+| `SWITCH`, `DEFAULT`, `END` | none |
+| `BRANCH` | `u64 CaseCell` |
+| `FF 10 11` (`PUSH16`) | `u16 ByteOffset` |
+| `FF 10 18` (`DROP16`), `FF 10 1D` (`PICK16`), `FF 10 1E` (`ROLL16`) | `u16 StackIndex` |
 | direct `CALL` | `u8 TargetKind`, `u32 TargetIndex` |
 | `FNADDR` | `u32 FunctionIndex` |
 | named `LOAD`, `STORE` | `u8 mode=2`, `u32 BindingIndex` |
@@ -387,6 +391,65 @@ value/type cannot be represented by that contract rather than truncate it.
 An opcode that has source/AST metadata for which no portable operand contract is
 defined MUST be rejected by the v0 executable lowerer rather than silently dropping
 that metadata.
+
+## Structured multi-way selection
+
+SWITCH consumes one scalar selector cell once and preserves its exact 64-bit
+value in private activation storage. BRANCH carries the complete 64-bit case
+cell in little-endian byte order; comparison is bitwise equality (no signed
+ordering). The source case literal is resolved using the existing Int64
+initializer semantics. BRANCH is valid only directly inside a SWITCH before
+DEFAULT. Each BRANCH opens a nested structured body closed by its own END.
+Only the first matching branch executes; its normal END transfers to the end
+of SWITCH. Repeated case values therefore preserve first-match semantics.
+
+A directly enclosing SWITCH accepts only BRANCH, optional DEFAULT, or END
+before its DEFAULT. DEFAULT directly inside SWITCH is a marker, not an opener:
+it introduces the unmatched path ending at SWITCH END. It may occur at most
+once. Outside a directly enclosing SWITCH, DEFAULT retains its ordinary
+scalar value behavior (push 1). No implicit fallthrough between cases exists.
+
+Let d be the evaluation depth after consuming the selector. Every case and
+default starts at d. All reachable exits MUST agree on one depth; a missing
+default contributes d. BREAK exits the nearest enclosing loop or SWITCH
+(including from its BRANCH), and contributes the corresponding entry baseline.
+CONTINUE targets only a loop, not SWITCH. RETURN and TRAP do not contribute
+a normal exit. Nested switches preserve independent selector snapshots.
+
+The verifier MUST reject misplaced BRANCH, duplicate DEFAULT markers,
+instructions directly inside SWITCH before a case/default, unbalanced
+structures, and inconsistent reachable exit depths. Selector storage is
+not a source BindingIndex or evaluation-stack cell. This first wire form
+does not encode source control labels or typed selection metadata; those
+variants MUST be rejected instead of silently erased.
+
+## Extended stack instructions
+
+The depth-one group 0x10 opcodes listed above take exactly one unsigned
+16-bit little-endian operand. Other depths/groups MUST NOT be reinterpreted
+as these instructions.
+
+| Opcode | Required live scalar cells | Stack delta |
+| --- | --- | --- |
+| PUSH16 offset | ceil((offset + 2) / 8) | +1 |
+| DROP16 index | index + 1 | -1 |
+| PICK16 index | index + 1 | +1 |
+| ROLL16 index | index + 1 | 0 |
+
+PUSH16 reads two consecutive bytes from the logical little-endian scalar
+evaluation stack starting at the byte offset from its top, and zero-extends
+the resulting UInt16 to a scalar cell. A read spanning two cells is permitted
+only when both bytes are inside live evaluation storage. This operation MUST
+NOT access frame bindings, saved control state, selector snapshots, private
+capability banks or any other memory. The other three operations use
+zero-based **cell** indices, not byte offsets; DROP16 removes the indexed
+cell, PICK16 copies it to the top, ROLL16 moves it to the top preserving the
+relative order of the remaining cells.
+
+The semantic verifier MUST check the listed stack bounds on every reachable
+path and verify opcode framing even in unreachable code. Backends MUST
+preserve the logical byte ordering rather than exposing host endianness.
+This defines scalar operations, not authority-bearing reads.
 
 ## Direct-call lowering
 
