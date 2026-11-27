@@ -497,10 +497,20 @@ from a known signed/unsigned source. Int64 and UInt64 admit all bit patterns;
 checked does not check overflow of intermediate arithmetic or change
 arithmetic opcode semantics. No output cell is created on a checked failure.
 
-Source syntax is a separate frontend concern. Proposed spelling:
-`block (t_int64, t_int64) -> t_int16` and
-`block checked (t_int64, t_int64) -> t_int16`.
-The v3 wire contract does not imply the frontend already supports this spelling.
+### Source form
+
+The reference frontend uses `block [checked] [label] (inputs) -> result`
+for mode 2. Inputs are comma-separated scalar primitive type names in
+deepest-to-top order; an empty list is permitted. The optional numeric
+label is a source-level nonnegative Int32, resolved before wire emission.
+Examples: `block (t_int64, t_int64) -> t_int16`,
+`block checked 9 (t_int64) -> t_int16`, and `block () -> t_void`.
+`block checked t_int16` is shorthand for a checked zero-input contract.
+The existing `block` and `block t_int16` forms retain modes 0 and 1.
+A label is not encoded as a native address or as a wire-global identifier.
+Compiler optimizations must preserve entry canonicalization, stack floors,
+normal and explicit exits, and checked traps; unsupported transformations
+must not optimize away these obligations.
 
 ## Relative structured control transfers (introduced in context wire version 1)
 
