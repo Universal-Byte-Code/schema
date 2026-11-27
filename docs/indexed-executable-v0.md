@@ -446,7 +446,8 @@ canonicalized to the declared scalar type using the same signed extension,
 unsigned extension or boolean normalization as a function return. An END
 on an unreachable path does not introduce a reachable successor. RETURN,
 TRAP and transfers to eligible enclosing controls do not manufacture a
-BLOCK result. BLOCK itself is not a BREAK or CONTINUE target.
+BLOCK result. Modes 0 and 1 are not BREAK or CONTINUE targets; mode 2
+has the explicit BREAK contract below and is never a CONTINUE target.
 
 This is a scalar result-count and canonicalization contract, not general
 static typing of the evaluation stack. Typed conditional comparisons and
