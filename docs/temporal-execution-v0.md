@@ -95,6 +95,21 @@ CONTINUE charge their own instruction and transfer to the first body
 instruction (not a second execution of LOOP). BREAK charges its own
 instruction and skips the target END. No implicit fuel is charged for label
 resolution. Nested targets use verified relative control ordinals.
+For the managed scalar/control reference, IF/WHILE charge the attempted
+condition-consuming instruction; a false branch skips the unexecuted body
+and its exit marker. An executed ELSE transfers past its matching END.
+A contracted BLOCK canonicalizes inputs on its own instruction and the result
+on normal END or the BREAK targeting that block. BREAK applies the result
+conversion as part of its attempt (no additional END fuel); checked failure
+is attributed semantically to that attempted instruction, even if a native
+backend shares an END guard. Local CALL consumes its argument cells in
+reverse stack order, records a caller-side boundary with the target, and
+is followed by a distinct invocation entry with no extra fuel. Return
+closes the current activation; a trap triggers LIFO abort transitions
+without further instruction fuel. Frame/binding/evaluation limits are
+explicit; a read of an uninitialized managed binding faults rather than
+inventing a value. This does not establish native uninitialized-memory
+parity or a portable guest-capability ABI.
 
 Each admitted context has a positive fixed fuel quantum Q for this profile.
 A turn advances private computation until the next semantic event request,
@@ -312,7 +327,7 @@ normalized trace and state to the serial reference.
 Current implementations cover subsets only. The C# managed coordinator is the
 implementation target; its typed managed effects, journal and lifecycle do
 not by themselves establish the complete portable instruction/effect binding.
-The scalar verified UBCM interpreter covers a restricted scalar and LOOP-only subset.
+The managed verified UBCM interpreter covers a restricted scalar, structured BLOCK/IF/WHILE/LOOP and direct-call subset.
 The Python effect models are historical test references to retire after managed
 parity. The native debug observer is a separate diagnostic ledger, not evidence
 of normative scheduling, protected clock access or semantic effect mediation.
