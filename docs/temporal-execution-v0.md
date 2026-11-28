@@ -90,6 +90,11 @@ order at observable boundaries and account for eliminated/fused instructions
 as if interpreted; it MUST reject temporal-v0 if it cannot. Optimization may
 change wall time, never the semantic fuel budget. Debug-only native INT3
 markers are not the normative mechanism.
+For the verified LOOP-only reference subset, LOOP charges on entry; END and
+CONTINUE charge their own instruction and transfer to the first body
+instruction (not a second execution of LOOP). BREAK charges its own
+instruction and skips the target END. No implicit fuel is charged for label
+resolution. Nested targets use verified relative control ordinals.
 
 Each admitted context has a positive fixed fuel quantum Q for this profile.
 A turn advances private computation until the next semantic event request,
@@ -239,7 +244,13 @@ The proposed v0 physical clock adapter uses unsigned integer nanoseconds,
 origin at session clock initialization, nondecreasing observations, and
 a monotonic host source excluding system suspend (Linux CLOCK_MONOTONIC
 reference). Other backends must document and match suspend semantics or
-negotiate a distinct domain. Precision/resolution is reported separately;
+negotiate a distinct domain.
+Clock grants are initially admitted by the host and may be attenuated at
+spawn. An explicit journal revocation of an active grant commits a coordinator
+admission and a context-local revocation transition with that admission as
+predecessor, before the target's turn. Subsequent clock requests require a
+still-active grant. Revocation of clock observation authority does not
+implicitly revoke timer authority or remove an already registered timer. Precision/resolution is reported separately;
 nanosecond units do not imply nanosecond accuracy. Equal samples are valid.
 Overflow, unavailable clock or regression is an explicit failure, never
 silent clamping. Wall time is not this domain. Cross-session/host subtraction
@@ -301,7 +312,7 @@ normalized trace and state to the serial reference.
 Current implementations cover subsets only. The C# managed coordinator is the
 implementation target; its typed managed effects, journal and lifecycle do
 not by themselves establish the complete portable instruction/effect binding.
-The scalar verified UBCM interpreter covers a restricted straight-line subset.
+The scalar verified UBCM interpreter covers a restricted scalar and LOOP-only subset.
 The Python effect models are historical test references to retire after managed
 parity. The native debug observer is a separate diagnostic ledger, not evidence
 of normative scheduling, protected clock access or semantic effect mediation.
