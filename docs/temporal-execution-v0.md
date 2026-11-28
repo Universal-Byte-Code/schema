@@ -160,6 +160,18 @@ atomicity and memory layout require separate contracts; arbitrary native
 loads/stores are not automatically mediated. Conflicting operations have
 the reference turn order, not an order inferred from physical time.
 
+The initial managed reference uses bounded unsigned 64-bit scalar locations,
+initialized by the host before round one (version zero, no writer event).
+Read, write, and atomic rights are explicit per-context grants. Atomic add
+uses modulo-2^64 arithmetic; compare-exchange compares the entire cell and
+returns the observed old value and success. A successful write (including
+an equal-value write or successful compare-exchange) increments version once;
+a failed compare-exchange is an observable read-like operation, with unchanged
+value/version/writer. Each depends on the last committed writer if one exists.
+Trusted ledger evidence includes before/after values, versions, operands and
+success; exposing those diagnostics to a guest requires separate authorization.
+These are scalar reference effects, not portable opcode or memory-model allocations.
+
 A send appends one message to the FIFO queue keyed by source and destination
 context. Its message identity is the send event ID. A receive names its source
 in v0; it removes the oldest matching committed message and depends on that
@@ -169,6 +181,21 @@ A child creation event is a predecessor of its first event. Synchronization
 operations must specify their release/acquire predecessors before admission.
 An authorization check precedes the effect; identifiers and provenance
 are not authority.
+
+The initial managed reference grants a directional channel to its source and
+destination before round one, uses bounded queues of u64 payloads, and grants
+no implicit shared-memory or channel authority to spawned contexts. A retained
+receive is retried by the coordinator without invoking private preparation again;
+its empty attempts do not allocate events. A sender may not send to a terminated
+destination. Already committed messages remain in their queues even if either
+endpoint terminates; a live authorized receiver can drain a terminated source.
+An empty queue from a terminated source remains blocked until explicit
+cancellation (no implicit EOF policy). Cancel-wait removes a retained receive
+and records its source and coordinator admission dependency; cancel-context
+removes its pending wait and terminates it. Queue exhaustion fails before
+publication and poisons the session; backpressure is a separate contract.
+Replay compares initial grants and resource limits, final cell values, versions,
+writer identities, FIFO contents/send identities and retained receives.
 
 Raw shared memory, unmanaged I/O, live RNG, host clock instructions and other
 unmediated external effects are forbidden in temporal-v0 unless their results
