@@ -5,12 +5,14 @@ on:
     paths:
       - 'tests/test_callable_capability.py'
       - 'docs/indexed-executable-callable-v0.md'
+      - 'docs/temporal-execution-v0.md'
       - 'registry/opcodes.json'
       - '.github/workflows/callable-model.yml'
   pull_request:
     paths:
       - 'tests/test_callable_capability.py'
       - 'docs/indexed-executable-callable-v0.md'
+      - 'docs/temporal-execution-v0.md'
       - 'registry/opcodes.json'
       - '.github/workflows/callable-model.yml'
 
