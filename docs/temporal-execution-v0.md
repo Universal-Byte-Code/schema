@@ -11,7 +11,10 @@ establish temporal conformance.
 ## 1. Domain and identity
 
 A session has one logical coordinator, an initial ordered list of admitted
-contexts, and an ordered external input journal. Session identity is fresh for
+contexts, and an ordered external input journal. Initial context creation is
+committed in declared order at round zero by the coordinator. A context's
+first semantic event depends on its creation. Creation during execution is a
+primary turn effect of the parent; it does not introduce a same-round turn. Session identity is fresh for
 each run, including replay. Context and loaded-instance ordinals are positive
 u64, assigned by their respective coordinator in admission order, never reused.
 An activation ordinal is positive u64 within a context and is allocated on entry,
@@ -28,6 +31,12 @@ A failed infrastructure transaction MUST NOT be represented as a successful
 portable event. Session termination and failure reporting may be out of band
 if no further event identity can be allocated. Admission MUST establish finite
 resource limits, including context count, stack, queues, trace size and budget.
+A bounded ledger can establish that event sequences and Lamport time never
+reach u64 exhaustion (each logical increment follows a committed event and
+all causal predecessors precede it). The complete multi-event effect batch
+MUST be preflighted for capacity before publication. Already committed prior
+turns are not rolled back by a later failed turn; infrastructure failure
+poisons the session, preventing further effects or successful replay claims.
 
 ## 2. Three orders, one physical clock domain
 
@@ -59,7 +68,13 @@ external input/output requests and results, clock observations, explicit yield,
 timer decisions, faults, and budget boundaries. This is an abstract event
 taxonomy; it is not an opcode table. Private arithmetic, local state mutations
 and debug probes are not independently observable unless the selected contract
-explicitly exposes them. Debug tracing MUST NOT insert semantic events into G.
+explicitly exposes them. Debug tracing MUST NOT insert semantic events into G. A diagnostic ledger has
+its own namespace/order; its entries cannot be submitted unchanged to a
+semantic ledger. Semantic fault mediation must be specified independently.
+For a portable budget/fault/return boundary record the round, boundary kind,
+accumulated fuel, verified occurrence when applicable, and result where
+applicable. A normal invocation return and final context termination are
+separate transitions.
 
 A logical work unit is one attempted verified portable instruction, charged
 before execution, including a faulting instruction. Operand bytes, escape
@@ -104,8 +119,13 @@ partial mutations or consume a local/global event number until a transition
 is actually committed. Blocking state is coordinator state, not evidence
 that an effect occurred. Cancellation of a pending request is a separately
 committed transition with explicit outcome; no silent retry of irreversible
-effects. A turn ends after its single boundary, not after arbitrary native
-progress.
+effects. A turn ends after its single primary boundary, not after arbitrary native
+progress. A prepared request is bound to its session, round and context;
+workers do not acquire publication authority. Coordinator-owned synthetic
+delivery events (e.g. expiry triggered by a clock observation) belong to the
+same admitted effect batch, not extra worker turns. A suspended timer waiter
+has no turn until it is eligible at a later snapshot. Other blocked requests
+are retried at their assigned visit as specified above.
 
 If no turn or admission makes progress, the result is quiescent with explicit
 blocked contexts and pending requests. The coordinator may resume only on
@@ -158,7 +178,8 @@ profiles MUST NOT be silently promoted to temporal-v0.
 ## 6. External journal and replay
 
 An external entry is (journal ordinal, target round, typed payload) with
-strictly increasing positive ordinals and nondecreasing target rounds.
+contiguous positive ordinals starting at one and nondecreasing positive target
+rounds. Already passed boundaries cannot be reopened.
 At a round boundary the coordinator commits the admitted entries in that
 order before context turns; delivery and cancellation transitions refer
 to the admission event. A live adapter chooses and records the admission
@@ -166,7 +187,10 @@ boundary according to its declared policy. The timing of real-world
 arrivals is not reproducible in general: determinism is conditional on
 the same journal, not on identical source code alone. A request-driven
 external result (including clock) is keyed to the requesting event/turn
-and recorded before effect publication. The reference must not read a
+and a positive session-local observation ordinal (also distinguishing multiple
+coordinator samples at one boundary). Record it as part of the atomic effect
+batch. Replay must validate its key and ordinal, not just consume an unkeyed
+value. The reference must not read a
 live external source during replay.
 
 Replay compares the full normalized semantic trace: event IDs projected
@@ -213,11 +237,17 @@ coordinator journal entry) delivers all eligible timers in ascending
 registration and sample, consumes no instruction fuel and makes the context
 eligible at the next frontier snapshot (same round if before that snapshot).
 Even an already-past deadline requires a subsequent admitted observation.
-Cancellation of the sleeping context removes its pending timer, with the
-registration and cancellation admission as predecessors; no later expiry.
-The initial reference uses context ordinal as tie-break because only one
-timer per context may be pending. Multiple timers, independent timer
-cancellation handles and autonomous live wake policy remain separate. No hard real-time or exact wakeup guarantee.
+Cancellation of the sleeping context terminates that context and removes its
+pending timer, with registration and coordinator cancellation admission as
+predecessors; no later expiry. If an active invocation exists, cancellation
+requires explicit abort/unwind transitions before context termination. A
+separate cancel-wait admission removes the pending timer without terminating
+the context; the waiter may resume at the next frontier snapshot. Both
+operations are journal entries with explicit outcomes; the initial contract
+rejects invalid targets rather than silently changing state. The initial
+reference uses context ordinal as tie-break because only one timer per context
+may be pending. Multiple timers, independent timer cancellation handles and
+autonomous live wake policy remain separate. No hard real-time or exact wakeup guarantee.
 
 Fixed-step application logic uses checked integer accumulation:
 
@@ -241,10 +271,13 @@ backlog, and rejection of a missing/extra/mismatched replay entry.
 Parallel equivalence tests MUST vary host execution timing and compare the
 normalized trace and state to the serial reference.
 
-Current prototypes implement subsets only. The Python effect model does
-not execute portable instructions or enforce Q. The native debug observer
-and publication ledger observe an admitted single-context trace; they do
-not establish scheduling, protected clock access or effect mediation.
+Current implementations cover subsets only. The C# managed coordinator is the
+implementation target; its typed managed effects, journal and lifecycle do
+not by themselves establish the complete portable instruction/effect binding.
+The scalar verified UBCM interpreter covers a restricted straight-line subset.
+The Python effect models are historical test references to retire after managed
+parity. The native debug observer is a separate diagnostic ledger, not evidence
+of normative scheduling, protected clock access or semantic effect mediation.
 No conformance claim until the reference semantics and integration gates
 are tested. Deadlock recovery, fairness beyond finite round visitation,
 host crash recovery, multihost consensus, optimized provenance, and
